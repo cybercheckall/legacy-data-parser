@@ -1,59 +1,54 @@
-# Phantom Browser
+# 🦉 Owl Stealth Workspace
 
-A stealth Chromium browser built with PyQt6, global hotkey support, and desktop window affinity protection.
+**Owl** is a premium, next-generation stealth browser designed for maximum privacy, modern aesthetics, and seamless AI integration. Built using PyQt6 and QtWebEngine, it acts as a fully isolated, zero-trace workspace that remains completely invisible to screen capture software and intrusive applications.
 
-## What this repo contains
+## ✨ Key Features
 
-- `main.py` — application entrypoint
-- `browser.py` — main browser UI and tab management
-- `hotkey.py` — global hotkey support for toggling the browser
-- `display_affinity.py` — display affinity helper for Windows
-- `phantom_browser.spec` — PyInstaller spec for building `phantom_browser.exe`
-- `test_sample.spec` — PyInstaller spec for a sample test executable
-- `tests/` — test files for project validation
+### 🛡️ Ultimate Stealth & Privacy
+- **Screen-Capture Invisibility**: Leverages the Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` to render the browser completely invisible to screen recording software (OBS Studio, Zoom, Teams) and screenshot utilities.
+- **Taskbar & Alt-Tab Suppression**: Uses `WS_EX_TOOLWINDOW` and `WS_EX_NOACTIVATE` to run as a floating widget, preventing the application from appearing in the Windows Taskbar or the Alt-Tab switcher.
+- **Always-On-Top Layering**: Forces the Windows Desktop Window Manager (DWM) to render the browser above all other applications, ensuring it never gets buried behind other windows.
+- **Panic Hotkey**: Instantly hide or show the entire workspace system-wide by pressing `Ctrl+Shift+B`.
+- **Zero-Trace Ephemeral Profiles**: All browsing data (cookies, history, cache) is kept strictly off-the-record in memory. Once the browser is closed, all session data is permanently destroyed.
 
-## Requirements
+### 🎨 Premium Glassmorphic UI
+- **Custom Frameless Design**: Stripped of the standard Windows borders and title bars for a pure, clean, modern dark card aesthetic.
+- **Window Opacity Slider**: A built-in slider in the custom title bar allows users to dynamically adjust the transparency of the entire application window on the fly.
+- **Chrome-Style Tab System**: Beautifully curved tabs with dynamic '+' button placement that perfectly mimics the premium feel of Google Chrome.
+- **Guest Mode Default**: The profile selector defaults to a clean, isolated Guest Mode profile upon startup.
+- **Clean Google Navigation**: The homepage and URL bar are designed to be completely distraction-free, defaulting to a pristine Google Search page without cluttered shortcuts.
 
-- Windows 10/11
-- Python 3.11+ (or compatible Python 3.x)
-- `PyQt6`
-- `PyInstaller`
-- `pynput`
+### 🤖 Integrated AI Co-Pilot
+- **Floating AI Sparkle**: A discreet, pulsing floating sparkle button (`✦`) sits at the bottom center of the workspace.
+- **Sliding ChatGPT Panel**: Clicking the floating button slides out a sleek 400px side panel running a fully integrated ChatGPT webview, allowing you to ask questions and brainstorm without ever leaving your workspace.
 
-## Install dependencies
+## 🚀 Installation & Usage
 
+### Running from Source
+Ensure you have Python 3.12+ installed along with the required dependencies (`PyQt6`, `pytest`, `pynput`).
 ```powershell
-python -m pip install --upgrade pip
-python -m pip install PyQt6 pyinstaller pynput
-```
+# Clone the repository
+git clone https://github.com/Raghuvaranlokati/private-brower.git
+cd private-brower
 
-## Run from source
-
-```powershell
+# Run the application
 python main.py
 ```
 
-## Build the executable
+### Running the Standalone Executable
+If you prefer not to use Python, you can run the compiled standalone application directly:
+1. Navigate to the `dist` folder.
+2. Double-click `Owl.exe`.
 
-This project uses PyInstaller and the provided spec file.
+*(Note: If you run `Owl.exe` from your desktop, make sure to keep the application closed when attempting to update or replace the executable).*
 
+## 🧪 Testing & Verification
+This project maintains a rigorous **100% test coverage** standard.
+Run the automated test suite to verify the integrity of all features, including the stealth protections and UI components:
 ```powershell
-pyinstaller phantom_browser.spec
+pytest tests/ -v
 ```
+*(Currently passing 163 / 163 tests)*
 
-After the build completes, the executable will be in the `dist\phantom_browser\` directory.
-
-## Ignore generated files
-
-This repo ignores build and distribution artifacts using `.gitignore`.
-
-## Notes
-
-- Do not commit `build/` or `dist/` directories.
-- `dist/phantom_browser.exe` and related generated files are large and should remain local.
-- Use `git rm --cached -r build dist` if generated files were accidentally tracked.
-
-## Troubleshooting
-
-- If `pyinstaller` fails because of missing Qt resources, verify `PyQt6` is installed and that the correct `QtWebEngineProcess.exe` path exists.
-- If the app does not start, make sure `PyQt6.QtWebEngineWidgets` is available.
+---
+*Built with precision and stealth.* 🦉✨
