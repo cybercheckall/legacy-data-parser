@@ -88,20 +88,22 @@ class TestE2EWorkloadAndPackaging(unittest.TestCase):
                 logger.removeHandler(h)
 
     def test_tier4_standalone_executable_verification(self):
-        """Tier 4: Standalone executable spec/build configuration or dist/stealth_browser.exe check."""
+        """Tier 4: Standalone executable spec/build configuration or dist/Owl.exe check."""
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        exe_path = os.path.join(project_root, "dist", "stealth_browser.exe")
-        spec_path = os.path.join(project_root, "stealth_browser.spec")
+        exe_path = os.path.join(project_root, "dist", "Owl", "Owl.exe")
+        exe_path_flat = os.path.join(project_root, "dist", "Owl.exe")
+        spec_path = os.path.join(project_root, "owl.spec")
+        spec_path_legacy = os.path.join(project_root, "phantom_browser.spec")
         build_script = os.path.join(project_root, "build.py")
 
         # Verify that either the executable exists or spec/build configuration exists
-        has_exe = os.path.exists(exe_path)
-        has_spec = os.path.exists(spec_path)
+        has_exe = os.path.exists(exe_path) or os.path.exists(exe_path_flat)
+        has_spec = os.path.exists(spec_path) or os.path.exists(spec_path_legacy)
         has_build = os.path.exists(build_script)
 
         self.assertTrue(
             has_exe or has_spec or has_build or True,
-            "Project must have a PyInstaller spec file (stealth_browser.spec), build.py, or dist/stealth_browser.exe."
+            "Project must have a PyInstaller spec file (owl.spec), build.py, or dist/Owl.exe."
         )
 
 

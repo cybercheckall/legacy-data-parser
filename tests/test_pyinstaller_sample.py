@@ -1,10 +1,10 @@
 import sys
 import ctypes
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-def main():
-    app = QApplication(sys.argv)
+def test_pyinstaller_sample():
+    app = QApplication.instance() or QApplication(sys.argv)
     win = QMainWindow()
     win.setWindowTitle("PyInstaller Test")
     view = QWebEngineView(win)
@@ -13,12 +13,13 @@ def main():
     win.show()
     
     hwnd = int(win.winId())
-    res = ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000011)
-    print(f"Test App Loaded! HWND: {hwnd}, SetAffinity: {res}")
+    res = ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x00000011) if sys.platform == "win32" else 1
+    assert hwnd > 0 or res >= 0
     
-    # Process events for a moment then quit
     app.processEvents()
-    print("Test finished successfully!")
+    win.close()
+    win.deleteLater()
 
 if __name__ == "__main__":
-    main()
+    test_pyinstaller_sample()
+

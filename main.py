@@ -1,9 +1,10 @@
 """
-Phantom Browser — Main entrypoint.
+main.py - Phantom Workspace Application Entrypoint.
 
-Launches the stealth Chromium browser with global hotkey support
-and desktop logging.
+Launches Phantom Workspace with single-instance enforcement, modern dark glassmorphic styling,
+profile selector startup flow, and global stealth hotkey support.
 """
+
 import logging
 import os
 import sys
@@ -26,32 +27,43 @@ def setup_logging():
 def main():
     setup_logging()
     logger = logging.getLogger(__name__)
-    logger.info("=== Phantom Browser starting ===")
+    logger.info("=== Owl starting ===")
 
-    # Must be imported after logging is configured
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtCore import QTimer
+    from PyQt6.QtGui import QIcon
 
-    from browser import PhantomBrowser
+    from browser import OwlBrowser, PhantomBrowser
     from hotkey import GlobalHotkey
+    from single_instance import SingleInstanceGuard
+    from styles import DARK_GLASS_STYLE
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Phantom Browser")
+    app.setApplicationName("Owl")
     app.setQuitOnLastWindowClosed(True)
 
-    # Apply global dark stylesheet
-    app.setStyleSheet(
-        """
-        QMainWindow {
-            background-color: #0a0a1a;
-        }
-        QWidget {
-            background-color: #0a0a1a;
-        }
-        """
-    )
+    icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.ico")
+    if not os.path.exists(icon_path):
+        icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.jpg")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
 
-    browser = PhantomBrowser()
+    # Enforce single instance application guard
+    guard = SingleInstanceGuard("OwlBrowserApp")
+    if not guard.try_acquire():
+        logger.info("Secondary instance detected. Primary instance notified; exiting with code 0.")
+        sys.exit(0)
+
+    app.aboutToQuit.connect(guard.release)
+
+    # Apply modern dark glassmorphism stylesheet application-wide
+    app.setStyleSheet(DARK_GLASS_STYLE)
+
+    browser = OwlBrowser(show_profile_selector_on_start=True)
+    guard.activation_requested.connect(browser.activate_window_to_front)
+    if hasattr(guard, "activated"):
+        guard.activated.connect(browser.activate_window_to_front)
+
     browser.show()
 
     # Global hotkey: Ctrl+Shift+B toggles visibility
@@ -68,7 +80,7 @@ def main():
     hotkey = GlobalHotkey(on_toggle=toggle_browser)
     hotkey.start()
 
-    logger.info("Phantom Browser ready — Ctrl+Shift+B to toggle visibility")
+    logger.info("Owl ready — Ctrl+Shift+B to toggle visibility")
 
     try:
         sys.exit(app.exec())
@@ -76,7 +88,8 @@ def main():
         pass
     finally:
         hotkey.stop()
-        logger.info("=== Phantom Browser stopped ===")
+        guard.release()
+        logger.info("=== Owl stopped ===")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
 """
-Phantom Browser — A full-featured stealth Chromium browser invisible to screen sharing.
+browser.py - Phantom Workspace Browser Main Window.
 
-Main application module with tabbed browsing, bookmarks, URL bar, and
-SetWindowDisplayAffinity protection.
+Assembles TitleBar, NavBar, TabWidget, BookmarksBar, and ProfileSelector into
+the main PhantomBrowser window with dark glassmorphic styling and stealth affinity.
 """
+
 import logging
 import os
 import sys
@@ -12,13 +13,21 @@ from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSlot
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-    QPushButton, QTabBar, QTabWidget, QToolBar, QVBoxLayout, QWidget,
-    QSizePolicy, QStyle,
+    QPushButton, QTabWidget, QVBoxLayout, QWidget, QStackedWidget,
+    QSizePolicy
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
 from display_affinity import apply_display_affinity
+from profile_manager import ProfileManager, Profile, create_otr_web_profile
+from styles import DARK_GLASS_STYLE
+from title_bar import TitleBar
+from nav_bar import NavBar
+from tab_bar import TabWidget
+from profile_selector import ProfileSelector
+from ai_panel import AIFloatingButton, AISidePanel
+from settings_view import SettingsView
 
 logger = logging.getLogger(__name__)
 
@@ -45,241 +54,220 @@ class WebTab(QWebEngineView):
             self.setPage(page)
 
     def createWindow(self, window_type):
-        """Handle requests to open a new window (e.g., target=_blank links)."""
+        """Handle requests to open a new window (e.g. target=_blank links)."""
         main_window = self.window()
-        if isinstance(main_window, PhantomBrowser):
+        if isinstance(main_window, OwlBrowser):
             return main_window.add_new_tab()
         return super().createWindow(window_type)
 
 
-class PhantomBrowser(QMainWindow):
-    """Main stealth browser window with tabbed browsing and bookmarks."""
+class OwlBrowser(QMainWindow):
+    """Main stealth browser window assembling all M2 modular UI components."""
 
-    def __init__(self):
+    def __init__(self, show_profile_selector_on_start: bool = True):
         super().__init__()
-        self.setWindowTitle("Phantom Browser")
+        self.setWindowTitle("Owl")
+
+        icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.ico")
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.jpg")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         # Window flags: frameless-ish but resizable, no taskbar icon, always on top
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool  # No taskbar icon
+            | Qt.WindowType.Tool
         )
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.resize(1100, 750)
 
-        # Shared web engine profile for cookie/session persistence
-        self._profile = QWebEngineProfile.defaultProfile()
-        self._profile.setPersistentCookiesPolicy(
-            QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
-        )
+        # Profile management & Off-The-Record QWebEngineProfile initialization
+        self._profile_manager = ProfileManager()
+        self._active_profile = self._profile_manager.get_active_profile()
+        self._profile = create_otr_web_profile(self._active_profile, parent=self)
 
-        # --- Drag state ---
-        self._drag_pos = None
+        # Apply central stylesheet
+        self.setStyleSheet(DARK_GLASS_STYLE)
 
-        # --- Build UI ---
-        self._build_ui()
+        # --- Build Stacked UI (Profile Selector vs Workspace) ---
+        self._central_stack = QStackedWidget(self)
+        self.setCentralWidget(self._central_stack)
+
+        self._build_workspace_ui()
+        self._build_profile_selector_ui()
+
+        # Initialize AI Floating Sparkle Button & Side Panel
+        self.ai_button = AIFloatingButton(self)
+        self.ai_panel = AISidePanel(self)
+        self.ai_button.clicked.connect(self.ai_panel.toggle_panel)
+        self._reposition_ai_components()
+
         self._setup_shortcuts()
+
+        if show_profile_selector_on_start:
+            self.show_profile_selector()
+        else:
+            self.show_workspace()
 
         # Apply display affinity after window is shown
         QTimer.singleShot(100, self._apply_stealth)
 
-    def _build_ui(self):
-        """Build the complete browser UI."""
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._reposition_ai_components()
 
-        # --- Custom title bar ---
-        self._title_bar = QWidget()
-        self._title_bar.setFixedHeight(30)
-        self._title_bar.setStyleSheet(
-            "background-color: #1a1a2e; color: #e0e0e0;"
+    def _reposition_ai_components(self):
+        """Reposition floating AI button and update side panel geometry on resize."""
+        bw = self.width()
+        bh = self.height()
+        is_selector_active = (
+            hasattr(self, "_central_stack")
+            and hasattr(self, "profile_selector")
+            and self._central_stack.currentWidget() == self.profile_selector
         )
-        title_layout = QHBoxLayout(self._title_bar)
-        title_layout.setContentsMargins(8, 0, 4, 0)
-        title_layout.setSpacing(4)
 
-        title_label = QLabel("👻 Phantom Browser")
-        title_label.setStyleSheet(
-            "color: #a0a0d0; font-size: 12px; font-weight: bold; font-family: 'Segoe UI';"
-        )
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
+        if hasattr(self, "ai_button") and self.ai_button:
+            btn_x = (bw - 52) // 2
+            btn_y = bh - 52 - 24
+            self.ai_button.move(btn_x, btn_y)
+            if is_selector_active:
+                self.ai_button.hide()
+            else:
+                self.ai_button.show()
+                self.ai_button.raise_()
 
-        # Minimize button
-        min_btn = QPushButton("—")
-        min_btn.setFixedSize(28, 22)
-        min_btn.setStyleSheet(self._title_btn_style())
-        min_btn.clicked.connect(self.showMinimized)
-        title_layout.addWidget(min_btn)
+        if hasattr(self, "ai_panel") and self.ai_panel:
+            pw = self.ai_panel.width()
+            title_bar_h = 0
+            if hasattr(self, "title_bar") and self.title_bar and self.title_bar.isVisible():
+                title_bar_h = self.title_bar.height()
+            
+            panel_h = bh - title_bar_h
+            is_expanded = getattr(self.ai_panel, "is_expanded", lambda: getattr(self.ai_panel, "_is_expanded", False))()
+            if is_expanded:
+                self.ai_panel.setGeometry(bw - pw, title_bar_h, pw, panel_h)
+            else:
+                self.ai_panel.setGeometry(bw, title_bar_h, pw, panel_h)
+            self.ai_panel.raise_()
 
-        # Maximize/Restore button
-        self._max_btn = QPushButton("□")
-        self._max_btn.setFixedSize(28, 22)
-        self._max_btn.setStyleSheet(self._title_btn_style())
-        self._max_btn.clicked.connect(self._toggle_maximize)
-        title_layout.addWidget(self._max_btn)
+    def _build_workspace_ui(self):
+        """Build main workspace view containing TitleBar, NavBar, BookmarksBar, and TabWidget."""
+        self.workspace_widget = QWidget(self)
+        ws_layout = QVBoxLayout(self.workspace_widget)
+        ws_layout.setContentsMargins(0, 0, 0, 0)
+        ws_layout.setSpacing(0)
 
-        # Close button
-        close_btn = QPushButton("✕")
-        close_btn.setFixedSize(28, 22)
-        close_btn.setStyleSheet(self._title_btn_style("#c0392b", "#e74c3c"))
-        close_btn.clicked.connect(self.close)
-        title_layout.addWidget(close_btn)
+        # Title Bar
+        self.title_bar = TitleBar(self)
+        self._title_bar = self.title_bar
+        ws_layout.addWidget(self.title_bar)
 
-        layout.addWidget(self._title_bar)
+        # Navigation Bar
+        self.nav_bar = NavBar(self)
+        self._nav_bar = self.nav_bar
+        ws_layout.addWidget(self.nav_bar)
 
-        # --- Navigation toolbar ---
-        nav_bar = QWidget()
-        nav_bar.setFixedHeight(36)
-        nav_bar.setStyleSheet("background-color: #16213e; padding: 2px;")
-        nav_layout = QHBoxLayout(nav_bar)
-        nav_layout.setContentsMargins(6, 2, 6, 2)
-        nav_layout.setSpacing(4)
+        # Hidden / Backwards compatibility button references
+        self._back_btn = self.nav_bar.back_btn
+        self._fwd_btn = self.nav_bar.fwd_btn
+        self._refresh_btn = self.nav_bar.reload_btn
+        self._url_bar = self.nav_bar.url_bar
+        self.url_bar = self.nav_bar.url_bar
 
-        btn_style = self._nav_btn_style()
+        # Connect NavBar signals
+        self.nav_bar.navigate_requested.connect(self._navigate_from_input)
+        self.nav_bar.refresh_requested.connect(self._refresh_page)
+        self.nav_bar.settings_requested.connect(self._open_settings)
+        self.nav_bar.profile_requested.connect(self.show_profile_selector)
+        self.nav_bar.back_requested.connect(self._go_back)
+        self.nav_bar.forward_requested.connect(self._go_forward)
 
-        self._back_btn = QPushButton("◀")
-        self._back_btn.setFixedSize(30, 28)
-        self._back_btn.setStyleSheet(btn_style)
-        self._back_btn.clicked.connect(self._go_back)
-        nav_layout.addWidget(self._back_btn)
-
-        self._fwd_btn = QPushButton("▶")
-        self._fwd_btn.setFixedSize(30, 28)
-        self._fwd_btn.setStyleSheet(btn_style)
-        self._fwd_btn.clicked.connect(self._go_forward)
-        nav_layout.addWidget(self._fwd_btn)
-
-        self._refresh_btn = QPushButton("⟳")
-        self._refresh_btn.setFixedSize(30, 28)
-        self._refresh_btn.setStyleSheet(btn_style)
-        self._refresh_btn.clicked.connect(self._refresh_page)
-        nav_layout.addWidget(self._refresh_btn)
-
-        self._url_bar = QLineEdit()
-        self._url_bar.setPlaceholderText("Enter URL or search...")
-        self._url_bar.setStyleSheet(
-            """
-            QLineEdit {
-                background-color: #0f3460;
-                color: #e0e0e0;
-                border: 1px solid #1a1a4e;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: 13px;
-                font-family: 'Segoe UI';
-                selection-background-color: #533483;
-            }
-            QLineEdit:focus {
-                border: 1px solid #533483;
-            }
-            """
-        )
-        self._url_bar.returnPressed.connect(self._navigate_to_url)
-        nav_layout.addWidget(self._url_bar)
-
-        new_tab_btn = QPushButton("+")
-        new_tab_btn.setFixedSize(30, 28)
-        new_tab_btn.setStyleSheet(btn_style)
-        new_tab_btn.setToolTip("New Tab (Ctrl+T)")
-        new_tab_btn.clicked.connect(lambda: self.add_new_tab())
-        nav_layout.addWidget(new_tab_btn)
-
-        layout.addWidget(nav_bar)
-
-        # --- Bookmarks bar ---
-        bookmarks_bar = QWidget()
-        bookmarks_bar.setFixedHeight(28)
-        bookmarks_bar.setStyleSheet("background-color: #1a1a3e;")
-        bm_layout = QHBoxLayout(bookmarks_bar)
+        # Bookmarks Bar (instantiated but hidden/not added to layout to keep homepage clean per M4 R4)
+        self.bookmarks_bar = QWidget(self)
+        self.bookmarks_bar.setObjectName("BookmarksBar")
+        self.bookmarks_bar.setFixedHeight(28)
+        bm_layout = QHBoxLayout(self.bookmarks_bar)
         bm_layout.setContentsMargins(8, 0, 8, 0)
         bm_layout.setSpacing(4)
 
         for name, url in BOOKMARKS:
-            btn = QPushButton(name)
-            btn.setStyleSheet(
-                """
-                QPushButton {
-                    background-color: transparent;
-                    color: #8888cc;
-                    border: none;
-                    padding: 2px 8px;
-                    font-size: 11px;
-                    font-family: 'Segoe UI';
-                }
-                QPushButton:hover {
-                    color: #bbbbff;
-                    background-color: #2a2a5e;
-                    border-radius: 3px;
-                }
-                """
-            )
+            btn = QPushButton(name, self.bookmarks_bar)
+            btn.setProperty("class", "BookmarkBtn")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(lambda checked, u=url: self._navigate(u))
             bm_layout.addWidget(btn)
 
         bm_layout.addStretch()
-        layout.addWidget(bookmarks_bar)
+        self.bookmarks_bar.hide()
 
-        # --- Tab widget ---
-        self._tabs = QTabWidget()
-        self._tabs.setTabsClosable(True)
-        self._tabs.setMovable(True)
-        self._tabs.setDocumentMode(True)
-        self._tabs.tabCloseRequested.connect(self._close_tab)
-        self._tabs.currentChanged.connect(self._on_tab_changed)
-        self._tabs.setStyleSheet(
-            """
-            QTabWidget::pane {
-                border: none;
-            }
-            QTabBar::tab {
-                background-color: #1a1a3e;
-                color: #8888aa;
-                border: none;
-                padding: 6px 14px;
-                font-size: 12px;
-                font-family: 'Segoe UI';
-                min-width: 80px;
-                max-width: 200px;
-            }
-            QTabBar::tab:selected {
-                background-color: #16213e;
-                color: #e0e0e0;
-                border-bottom: 2px solid #533483;
-            }
-            QTabBar::tab:hover {
-                background-color: #2a2a5e;
-                color: #ccccee;
-            }
-            """
-        )
-        layout.addWidget(self._tabs)
+        # Tab Widget
+        self.tab_widget = TabWidget(self, homepage_url=self._active_profile.homepage)
+        self._tabs = self.tab_widget
+        ws_layout.addWidget(self.tab_widget)
 
-        # Open the first tab
-        self.add_new_tab(HOME_URL)
+        self.tab_widget.new_tab_requested.connect(lambda: self.add_new_tab())
+        self.tab_widget.currentChanged.connect(self._on_tab_changed)
+
+        self._central_stack.addWidget(self.workspace_widget)
+
+    def _build_profile_selector_ui(self):
+        """Build ProfileSelector startup/overlay widget."""
+        profiles = self._profile_manager.load_profiles()
+        self.profile_selector = ProfileSelector(profiles=profiles, parent=self)
+        self.profile_selector.profile_selected.connect(self._on_profile_selected)
+        self._central_stack.addWidget(self.profile_selector)
+
+    def show_workspace(self):
+        """Switch central stack to main browser workspace."""
+        self._central_stack.setCurrentWidget(self.workspace_widget)
+        if hasattr(self, "ai_button") and self.ai_button:
+            self.ai_button.show()
+            self.ai_button.raise_()
+        if self.tab_widget.count() == 0:
+            self.add_new_tab(self._active_profile.homepage)
+
+    def show_profile_selector(self):
+        """Switch central stack to profile selector view."""
+        profiles = self._profile_manager.load_profiles()
+        self.profile_selector.set_profiles(profiles)
+        self._central_stack.setCurrentWidget(self.profile_selector)
+        if hasattr(self, "ai_button") and self.ai_button:
+            self.ai_button.hide()
+        if hasattr(self, "ai_panel") and self.ai_panel:
+            self.ai_panel.hide_panel()
+
+    def _on_profile_selected(self, profile: Profile):
+        """Handle profile selection from profile selector screen."""
+        logger.info("Switching to active profile: %s (%s)", profile.name, profile.id)
+        self._profile_manager.set_active_profile(profile.id)
+        self._active_profile = profile
+        self._profile = create_otr_web_profile(profile, parent=self)
+        self.tab_widget.set_homepage_url(profile.homepage)
+        self.nav_bar.set_profile_avatar(profile.avatar)
+
+        self.show_workspace()
+
+    def activate_window_to_front(self):
+        """Bring browser window to foreground and give focus."""
+        if not self.isVisible():
+            self.show()
+        if self.isMinimized():
+            self.showNormal()
+        self.raise_()
+        self.activateWindow()
 
     def _setup_shortcuts(self):
-        """Set up keyboard shortcuts."""
-        # Ctrl+T: New tab
+        """Set up global application keyboard shortcuts."""
         QShortcut(QKeySequence("Ctrl+T"), self, lambda: self.add_new_tab())
-        # Ctrl+W: Close current tab
         QShortcut(QKeySequence("Ctrl+W"), self, self._close_current_tab)
-        # Ctrl+L: Focus URL bar
         QShortcut(QKeySequence("Ctrl+L"), self, self._focus_url_bar)
-        # Ctrl+R / F5: Refresh
         QShortcut(QKeySequence("Ctrl+R"), self, self._refresh_page)
         QShortcut(QKeySequence("F5"), self, self._refresh_page)
-        # Alt+Left: Back
         QShortcut(QKeySequence("Alt+Left"), self, self._go_back)
-        # Alt+Right: Forward
         QShortcut(QKeySequence("Alt+Right"), self, self._go_forward)
-        # Esc: Hide window
         QShortcut(QKeySequence("Escape"), self, self.hide)
 
     def _apply_stealth(self):
@@ -293,11 +281,13 @@ class PhantomBrowser(QMainWindow):
 
     # --- Tab management ---
 
-    def add_new_tab(self, url: str = None) -> WebTab:
-        """Add a new browser tab and return the WebTab widget."""
+    def add_new_tab(self, url: str = None, label: str = "New Tab") -> WebTab:
+        """Add a new browser tab using active profile's OTR profile and return WebTab widget."""
         tab = WebTab(self, self._profile)
-        idx = self._tabs.addTab(tab, "New Tab")
-        self._tabs.setCurrentIndex(idx)
+        target_url = url if url else (self._active_profile.homepage if hasattr(self, "_active_profile") else HOME_URL)
+        
+        idx = self.tab_widget.addTab(tab, label)
+        self.tab_widget.setCurrentIndex(idx)
 
         tab.titleChanged.connect(
             lambda title, t=tab: self._update_tab_title(t, title)
@@ -306,165 +296,145 @@ class PhantomBrowser(QMainWindow):
             lambda qurl, t=tab: self._update_url_bar(t, qurl)
         )
 
-        if url:
-            tab.setUrl(QUrl(url))
-        else:
-            tab.setUrl(QUrl(HOME_URL))
-
-        logger.info("New tab opened: %s", url or HOME_URL)
+        tab.setUrl(QUrl(target_url))
+        logger.info("New tab opened: %s", target_url)
         return tab
 
+    def close_tab(self, index: int):
+        """Close tab at given index or navigate last tab home."""
+        self.tab_widget.close_tab(index)
+
     def _close_tab(self, index: int):
-        """Close tab at the given index."""
-        if self._tabs.count() > 1:
-            widget = self._tabs.widget(index)
-            self._tabs.removeTab(index)
-            widget.deleteLater()
-        else:
-            # Last tab — navigate to home instead of closing
-            self._current_tab().setUrl(QUrl(HOME_URL))
+        self.close_tab(index)
 
     def _close_current_tab(self):
-        """Close the currently active tab."""
-        self._close_tab(self._tabs.currentIndex())
+        """Close currently active tab."""
+        self.close_tab(self.tab_widget.currentIndex())
 
-    def _current_tab(self) -> WebTab:
-        """Get the currently active WebTab."""
-        return self._tabs.currentWidget()
+    def _current_tab(self) -> QWidget:
+        """Get currently active tab widget."""
+        return self.tab_widget.currentWidget()
 
     def _on_tab_changed(self, index: int):
         """Update URL bar when switching tabs."""
-        tab = self._tabs.widget(index)
-        if tab and isinstance(tab, WebTab):
-            self._url_bar.setText(tab.url().toString())
+        tab = self.tab_widget.widget(index)
+        if tab and hasattr(tab, "url"):
+            self.nav_bar.set_url(tab.url().toString())
 
-    def _update_tab_title(self, tab: WebTab, title: str):
-        """Update tab title text."""
-        idx = self._tabs.indexOf(tab)
+    def _update_tab_title(self, tab: QWidget, title: str):
+        """Update tab title text with truncation."""
+        idx = self.tab_widget.indexOf(tab)
         if idx >= 0:
-            display_title = title[:25] + "..." if len(title) > 25 else title
-            self._tabs.setTabText(idx, display_title or "New Tab")
+            clean_title = title.strip() if (title and title.strip()) else "New Tab"
+            display_title = clean_title[:25] + "..." if len(clean_title) > 25 else clean_title
+            self.tab_widget.setTabText(idx, display_title)
 
-    def _update_url_bar(self, tab: WebTab, qurl: QUrl):
-        """Update URL bar when the current tab navigates."""
+    def _update_url_bar(self, tab: QWidget, qurl: QUrl):
+        """Update URL bar when current tab navigates."""
         if tab == self._current_tab():
-            self._url_bar.setText(qurl.toString())
+            self.nav_bar.set_url(qurl.toString())
 
-    # --- Navigation ---
+    # --- Navigation & Query Parsing ---
 
-    def _navigate_to_url(self):
-        """Navigate to the URL typed in the URL bar."""
-        text = self._url_bar.text().strip()
-        if not text:
+    def _navigate_from_input(self, text: str):
+        """Parse input text as direct URL, settings URL, or search query using active profile's search engine."""
+        cleaned = text.strip()
+        if not cleaned:
             return
 
-        # If it looks like a URL, navigate directly
-        if "." in text and " " not in text:
-            if not text.startswith(("http://", "https://")):
-                text = "https://" + text
-            url = QUrl(text)
-        else:
-            # Otherwise, search with Google
-            url = QUrl(f"https://www.google.com/search?q={text}")
+        cleaned_lower = cleaned.lower()
+        if cleaned_lower in ("chrome://settings", "phantom://settings", "owl://settings", "about:settings"):
+            self._open_settings()
+            return
 
-        tab = self._current_tab()
-        if tab:
-            tab.setUrl(url)
-            logger.info("Navigating to: %s", url.toString())
+        explicit_schemes = ("http://", "https://", "file://", "about:", "chrome://", "phantom://", "owl://", "ftp://", "data:")
+
+        if cleaned_lower.startswith(explicit_schemes):
+            url_str = cleaned
+        elif (cleaned_lower.startswith("localhost") or cleaned_lower.startswith("127.0.0.1")) and " " not in cleaned:
+            url_str = "http://" + cleaned
+        elif "." in cleaned and " " not in cleaned:
+            url_str = "https://" + cleaned
+        else:
+            if hasattr(self, "_active_profile") and hasattr(self._active_profile, "get_search_url"):
+                url_str = self._active_profile.get_search_url(cleaned)
+            else:
+                import urllib.parse
+                url_str = f"https://www.google.com/search?q={urllib.parse.quote_plus(cleaned)}"
+
+        self._navigate(url_str)
 
     def _navigate(self, url: str):
-        """Navigate the current tab to a URL."""
+        """Navigate current tab to specified URL string."""
         tab = self._current_tab()
-        if tab:
+        if tab and hasattr(tab, "setUrl"):
             tab.setUrl(QUrl(url))
 
     def _go_back(self):
         tab = self._current_tab()
-        if tab:
+        if tab and hasattr(tab, "back"):
             tab.back()
 
     def _go_forward(self):
         tab = self._current_tab()
-        if tab:
+        if tab and hasattr(tab, "forward"):
             tab.forward()
 
     def _refresh_page(self):
         tab = self._current_tab()
-        if tab:
+        if tab and hasattr(tab, "reload"):
             tab.reload()
 
-    def _focus_url_bar(self):
-        self._url_bar.setFocus()
-        self._url_bar.selectAll()
+    def _open_settings(self):
+        """Open settings view in a dedicated deduplicated browser tab."""
+        # Search for existing SettingsView tab
+        for idx in range(self.tab_widget.count()):
+            widget = self.tab_widget.widget(idx)
+            if isinstance(widget, SettingsView):
+                self.tab_widget.setCurrentIndex(idx)
+                self.nav_bar.set_url("owl://settings")
+                return widget
 
-    # --- Window maximize toggle ---
+        # Create new SettingsView tab
+        settings_tab = SettingsView(profile_manager=self._profile_manager, parent=self)
+        settings_tab.search_engine_changed.connect(self._on_search_engine_changed)
+        settings_tab.homepage_changed.connect(self._on_homepage_changed)
+        settings_tab.profile_updated.connect(self._on_profile_updated)
+
+        tab_idx = self.tab_widget.addTab(settings_tab, "⚙ Settings")
+        self.tab_widget.setCurrentIndex(tab_idx)
+        self.nav_bar.set_url("owl://settings")
+        logger.info("Opened SettingsView tab at index %d", tab_idx)
+        return settings_tab
+
+    def _on_search_engine_changed(self, engine: str):
+        logger.info("Search engine updated to: %s", engine)
+        self._active_profile = self._profile_manager.get_active_profile()
+
+    def _on_homepage_changed(self, homepage: str):
+        logger.info("Homepage updated to: %s", homepage)
+        self._active_profile = self._profile_manager.get_active_profile()
+        self.tab_widget.set_homepage_url(homepage)
+
+    def _on_profile_updated(self):
+        logger.info("Profile updated from Settings.")
+        self._active_profile = self._profile_manager.get_active_profile()
+        self.nav_bar.set_profile_avatar(self._active_profile.avatar)
+        self.tab_widget.set_homepage_url(self._active_profile.homepage)
+
+    def _focus_url_bar(self):
+        self.nav_bar.url_bar.setFocus()
+        self.nav_bar.url_bar.selectAll()
+
+    # --- Window Controls ---
 
     def _toggle_maximize(self):
         if self.isMaximized():
             self.showNormal()
-            self._max_btn.setText("□")
+            self.title_bar.max_btn.setText("□")
         else:
             self.showMaximized()
-            self._max_btn.setText("❐")
+            self.title_bar.max_btn.setText("❐")
 
-    # --- Title bar drag ---
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # Check if clicking on title bar area
-            if self._title_bar.geometry().contains(event.pos()):
-                self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-                event.accept()
-
-    def mouseMoveEvent(self, event):
-        if self._drag_pos and event.buttons() == Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-            event.accept()
-
-    def mouseReleaseEvent(self, event):
-        self._drag_pos = None
-
-    def mouseDoubleClickEvent(self, event):
-        if self._title_bar.geometry().contains(event.pos()):
-            self._toggle_maximize()
-
-    # --- Style helpers ---
-
-    @staticmethod
-    def _title_btn_style(bg_hover="#333366", bg_pressed="#444488"):
-        return f"""
-            QPushButton {{
-                background-color: transparent;
-                color: #a0a0c0;
-                border: none;
-                font-size: 12px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {bg_hover};
-                color: white;
-            }}
-            QPushButton:pressed {{
-                background-color: {bg_pressed};
-            }}
-        """
-
-    @staticmethod
-    def _nav_btn_style():
-        return """
-            QPushButton {
-                background-color: #0f3460;
-                color: #a0a0d0;
-                border: 1px solid #1a1a4e;
-                border-radius: 4px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1a4a7a;
-                color: white;
-            }
-            QPushButton:pressed {
-                background-color: #533483;
-            }
-        """
+PhantomBrowser = OwlBrowser
