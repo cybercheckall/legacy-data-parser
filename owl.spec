@@ -46,8 +46,6 @@ a = Analysis(
         'PyQt6.QtWebChannel',
         'PyQt6.QtNetwork',
         'PyQt6.QtPositioning',
-        'pynput.keyboard._win32',
-        'pynput._util.win32',
     ],
     hookspath=[],
     hooksconfig={},

@@ -15,8 +15,8 @@ from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent, QIcon
 from PIL import Image
 
+from ai_panel import AISidePanel, AIFloatingButton
 from display_affinity import apply_display_affinity, WDA_EXCLUDEFROMCAPTURE
-from hotkey import GlobalHotkey
 from browser import OwlBrowser, PhantomBrowser
 
 logging.basicConfig(level=logging.INFO)
@@ -114,24 +114,14 @@ def run_stealth_stress_verification():
         logger.info(f"Flag persistence verified after state transition: {name}")
 
     # C. Global Hotkey & Shortcut Callback Stress
-    toggle_count = 0
-    def mock_toggle():
-        nonlocal toggle_count
-        toggle_count += 1
+    # (Global Hotkey feature removed)
+    win.show()
+    for _ in range(50):
         if win.isVisible():
             win.hide()
         else:
             win.show()
 
-    hotkey = GlobalHotkey(mock_toggle)
-    assert hotkey._target_keys == {"ctrl", "shift", "b"}, f"Unexpected target keys: {hotkey._target_keys}"
-
-    # Rapid simulated toggles
-    win.show()
-    for _ in range(50):
-        mock_toggle()
-
-    assert toggle_count == 50, f"Expected 50 toggle invocations, got {toggle_count}"
     assert win.isVisible() is True, "Window should be visible after 50 even toggles"
 
     # Test Escape key window hiding

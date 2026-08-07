@@ -2,7 +2,7 @@
 main.py - Phantom Workspace Application Entrypoint.
 
 Launches Phantom Workspace with single-instance enforcement, modern dark glassmorphic styling,
-profile selector startup flow, and global stealth hotkey support.
+and profile selector startup flow.
 """
 
 import logging
@@ -34,7 +34,6 @@ def main():
     from PyQt6.QtGui import QIcon
 
     from browser import OwlBrowser, PhantomBrowser
-    from hotkey import GlobalHotkey
     from single_instance import SingleInstanceGuard
     from styles import DARK_GLASS_STYLE
 
@@ -65,29 +64,13 @@ def main():
         guard.activated.connect(browser.activate_window_to_front)
 
     browser.show()
-
-    # Global hotkey: Ctrl+Shift+B toggles visibility
-    def toggle_browser():
-        if browser.isVisible():
-            browser.hide()
-            logger.info("Browser hidden via global hotkey")
-        else:
-            browser.show()
-            browser.activateWindow()
-            browser.raise_()
-            logger.info("Browser shown via global hotkey")
-
-    hotkey = GlobalHotkey(on_toggle=toggle_browser)
-    hotkey.start()
-
-    logger.info("Owl ready — Ctrl+Shift+B to toggle visibility")
+    logger.info("Owl ready")
 
     try:
         sys.exit(app.exec())
     except KeyboardInterrupt:
         pass
     finally:
-        hotkey.stop()
         guard.release()
         logger.info("=== Owl stopped ===")
 

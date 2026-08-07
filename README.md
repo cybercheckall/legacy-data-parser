@@ -8,7 +8,7 @@
 - **Screen-Capture Invisibility**: Leverages the Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` to render the browser completely invisible to screen recording software (OBS Studio, Zoom, Teams) and screenshot utilities.
 - **Taskbar & Alt-Tab Suppression**: Uses `WS_EX_TOOLWINDOW` and `WS_EX_NOACTIVATE` to run as a floating widget, preventing the application from appearing in the Windows Taskbar or the Alt-Tab switcher.
 - **Always-On-Top Layering**: Forces the Windows Desktop Window Manager (DWM) to render the browser above all other applications, ensuring it never gets buried behind other windows.
-- **Panic Hotkey**: Instantly hide or show the entire workspace system-wide by pressing `Ctrl+Shift+B`.
+- **Direct Launch**: Simply double-click the executable to launch the browser — no hotkeys required.
 - **Zero-Trace Ephemeral Profiles**: All browsing data (cookies, history, cache) is kept strictly off-the-record in memory. Once the browser is closed, all session data is permanently destroyed.
 
 ### 🎨 Premium Glassmorphic UI
@@ -25,7 +25,7 @@
 ## 🚀 Installation & Usage
 
 ### Running from Source
-Ensure you have Python 3.12+ installed along with the required dependencies (`PyQt6`, `pytest`, `pynput`).
+Ensure you have Python 3.12+ installed along with the required dependencies (`PyQt6`, `pytest`).
 ```powershell
 # Clone the repository
 git clone https://github.com/Raghuvaranlokati/private-brower.git

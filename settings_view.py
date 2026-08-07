@@ -481,7 +481,6 @@ class SettingsView(QWidget):
             "• Stealth Protection: SetWindowDisplayAffinity (WDA_EXCLUDEFROMCAPTURE)\n"
             "• Zero Disk Footprint: Ephemeral Off-The-Record QWebEngine Profile\n"
             "• Single-Instance Guard: Local Socket IPC Window Activation\n"
-            "• Global Visibility Hotkey: Ctrl+Shift+B\n"
             "• Integrated AI Side Panel: ChatGPT Assistant"
         )
         features_label = QLabel(features, card)
