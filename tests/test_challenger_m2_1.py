@@ -15,12 +15,12 @@ from PyQt6.QtGui import QMouseEvent, QAction
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from title_bar import TitleBar
-from nav_bar import NavBar
-from tab_bar import TabWidget
-from profile_selector import ProfileSelector
-from profile_manager import Profile, ProfileManager
-from browser import PhantomBrowser
+from owl.shell.title_bar import TitleBar
+from owl.shell.nav_bar import NavBar
+from owl.shell.tab_bar import TabWidget
+from owl.profiles.profile_selector import ProfileSelector
+from owl.profiles.profile_manager import Profile, ProfileManager
+from owl.workspace.main_window import PhantomBrowser
 
 
 class TestRapidTabChurnAndStress(unittest.TestCase):

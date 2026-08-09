@@ -9,9 +9,9 @@ qt6_path = os.path.join(pyqt6_path, 'Qt6')
 
 # Collect QtWebEngine data files and icon assets
 datas = [
-    ('owl_icon.jpg', '.'),
-    ('owl_icon.ico', '.'),
-    ('owl_icon.png', '.'),
+    ('assets/brand/owl_icon.jpg', '.'),
+    ('assets/brand/owl_icon.ico', '.'),
+    ('assets/brand/owl_icon.png', '.'),
 ]
 web_engine_resources = os.path.join(qt6_path, 'resources')
 if os.path.isdir(web_engine_resources):
@@ -84,5 +84,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='owl_icon.ico',
+    icon='assets/brand/owl_icon.ico',
 )

@@ -1,15 +1,13 @@
 """
-browser.py - Phantom Workspace Browser Main Window.
-
-Assembles TitleBar, NavBar, TabWidget, BookmarksBar, and ProfileSelector into
-the main PhantomBrowser window with dark glassmorphic styling and stealth affinity.
+Owl main window — assembles the 3 workspace layers
+(Handler → Place → Content) with Ask Owl on the content layer.
 """
 
 import logging
 import os
 import sys
 
-from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSlot
+from PyQt6.QtCore import Qt, QUrl, QTimer, QEvent, pyqtSlot
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
@@ -19,15 +17,17 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
-from display_affinity import apply_display_affinity
-from profile_manager import ProfileManager, Profile, create_otr_web_profile
-from styles import DARK_GLASS_STYLE
-from title_bar import TitleBar
-from nav_bar import NavBar
-from tab_bar import TabWidget
-from profile_selector import ProfileSelector
-from ai_panel import AIFloatingButton, AISidePanel
-from settings_view import SettingsView
+from owl.stealth.display_affinity import apply_display_affinity
+from owl.profiles.profile_manager import ProfileManager, Profile, create_otr_web_profile
+from owl.design.stylesheet import DARK_GLASS_STYLE
+from owl.shell.command_bar import CommandBar
+from owl.shell.nav_bar import NavBar
+from owl.shell.tab_bar import TabWidget
+from owl.profiles.profile_selector import ProfileSelector
+from owl.design.icons import owl_logo_path
+from owl.ai.panel import AIFloatingButton, AISidePanel
+from owl.settings.view import SettingsView
+from owl.paths import BRAND_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,26 @@ BOOKMARKS = [
 ]
 
 HOME_URL = "https://www.google.com"
+STEALTH_RETRY_DELAYS_MS = (100, 400, 1000)
+
+
+def _stealth_window_flags() -> Qt.WindowType:
+    """
+    Frameless always-on-top window that stays visible when clicking outside.
+
+    Custom handler owns traffic lights + owl logo (no native wordmark title bar).
+    Qt.Tool is omitted — on macOS Tool/panel windows auto-hide on deactivate.
+    """
+    return (
+        Qt.WindowType.Window
+        | Qt.WindowType.FramelessWindowHint
+        | Qt.WindowType.WindowStaysOnTopHint
+    )
+
+
+def _window_type(flags: Qt.WindowType) -> Qt.WindowType:
+    """Extract the base window type (Window/Tool/Dialog/…) from a flags enum."""
+    return flags & Qt.WindowType.WindowType_Mask
 
 
 class WebTab(QWebEngineView):
@@ -68,21 +88,19 @@ class OwlBrowser(QMainWindow):
         super().__init__()
         self.setWindowTitle("Owl")
 
-        icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.ico")
-        if not os.path.exists(icon_path):
-            icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.jpg")
-        if os.path.exists(icon_path):
+        icon_path = owl_logo_path() or os.path.join(BRAND_DIR, "owl_icon.ico")
+        if icon_path and os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        # Window flags: frameless-ish but resizable, no taskbar icon, always on top
-        self.setWindowFlags(
-            Qt.WindowType.Window
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
-        )
+        # Always-on-top; stays visible when focus moves to another app/window
+        self.setWindowFlags(_stealth_window_flags())
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+        # Prevent Qt from auto-quitting / discarding the window on deactivate
+        self.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
 
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.resize(1100, 750)
+        self._persist_on_deactivate = True
 
         # Profile management & Off-The-Record QWebEngineProfile initialization
         self._profile_manager = ProfileManager()
@@ -99,9 +117,8 @@ class OwlBrowser(QMainWindow):
         self._build_workspace_ui()
         self._build_profile_selector_ui()
 
-        # Initialize AI Floating Sparkle Button & Side Panel
+        # Ask Owl pill (floating) — panel itself is docked in the content row
         self.ai_button = AIFloatingButton(self)
-        self.ai_panel = AISidePanel(self)
         self.ai_button.clicked.connect(self.ai_panel.toggle_panel)
         self._reposition_ai_components()
 
@@ -112,8 +129,39 @@ class OwlBrowser(QMainWindow):
         else:
             self.show_workspace()
 
-        # Apply display affinity after window is shown
-        QTimer.singleShot(100, self._apply_stealth)
+        # Apply capture exclusion after the native window exists (retry on macOS)
+        for delay_ms in STEALTH_RETRY_DELAYS_MS:
+            QTimer.singleShot(delay_ms, self._apply_stealth)
+
+    def changeEvent(self, event):
+        """Keep the window on screen when focus moves to another app (click outside)."""
+        super().changeEvent(event)
+        if (
+            event.type() == QEvent.Type.ActivationChange
+            and getattr(self, "_persist_on_deactivate", True)
+            and not self.isActiveWindow()
+            and not self.isMinimized()
+            and getattr(self, "_user_hidden", False) is False
+        ):
+            # Some platforms still try to tuck Tool/panel windows away — force stay.
+            if not self.isVisible():
+                QTimer.singleShot(0, self._restore_after_outside_click)
+
+    def _restore_after_outside_click(self):
+        if getattr(self, "_user_hidden", False):
+            return
+        if not self.isVisible():
+            self.show()
+            self.raise_()
+
+    def hide(self):
+        """Track intentional hides (Esc / hotkey) vs accidental deactivate hides."""
+        self._user_hidden = True
+        super().hide()
+
+    def show(self):
+        self._user_hidden = False
+        super().show()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -130,8 +178,11 @@ class OwlBrowser(QMainWindow):
         )
 
         if hasattr(self, "ai_button") and self.ai_button:
-            btn_x = (bw - 52) // 2
-            btn_y = bh - 52 - 24
+            from owl.ai.panel import ASK_OWL_WIDTH, ASK_OWL_HEIGHT
+            btn_w = self.ai_button.width() or ASK_OWL_WIDTH
+            btn_h = self.ai_button.height() or ASK_OWL_HEIGHT
+            btn_x = (bw - btn_w) // 2
+            btn_y = bh - btn_h - 20
             self.ai_button.move(btn_x, btn_y)
             if is_selector_active:
                 self.ai_button.hide()
@@ -139,53 +190,84 @@ class OwlBrowser(QMainWindow):
                 self.ai_button.show()
                 self.ai_button.raise_()
 
-        if hasattr(self, "ai_panel") and self.ai_panel:
-            pw = self.ai_panel.width()
-            title_bar_h = 0
-            if hasattr(self, "title_bar") and self.title_bar and self.title_bar.isVisible():
-                title_bar_h = self.title_bar.height()
-            
-            panel_h = bh - title_bar_h
-            is_expanded = getattr(self.ai_panel, "is_expanded", lambda: getattr(self.ai_panel, "_is_expanded", False))()
-            if is_expanded:
-                self.ai_panel.setGeometry(bw - pw, title_bar_h, pw, panel_h)
-            else:
-                self.ai_panel.setGeometry(bw, title_bar_h, pw, panel_h)
-            self.ai_panel.raise_()
+        # AI panel is layout-docked (pushes content); no overlay geometry.
+
+    def _shell_height(self) -> int:
+        """Combined height of handler + place row (for AI panel offset)."""
+        h = 0
+        if hasattr(self, "command_bar") and self.command_bar and self.command_bar.isVisible():
+            h += self.command_bar.height()
+        if hasattr(self, "nav_bar") and self.nav_bar and self.nav_bar.isVisible():
+            h += self.nav_bar.height()
+        elif hasattr(self, "title_bar") and self.title_bar and self.title_bar.isVisible():
+            h = max(h, self.title_bar.height())
+        return h
 
     def _build_workspace_ui(self):
-        """Build main workspace view containing TitleBar, NavBar, BookmarksBar, and TabWidget."""
+        """
+        Build workspace shell:
+
+          L1  Handler  — traffic lights · owl logo · tabs · shield
+          L2  Place    — icon nav · omnibox · utilities
+          L3  Content  — page stack (+ Ask Owl pill at bottom)
+        """
         self.workspace_widget = QWidget(self)
+        self.workspace_widget.setObjectName("WorkspaceRoot")
         ws_layout = QVBoxLayout(self.workspace_widget)
         ws_layout.setContentsMargins(0, 0, 0, 0)
         ws_layout.setSpacing(0)
 
-        # Title Bar
-        self.title_bar = TitleBar(self)
-        self._title_bar = self.title_bar
-        ws_layout.addWidget(self.title_bar)
+        # --- Layer 1: Window handler (icon + tabs) ---
+        self.layer_command = QWidget(self.workspace_widget)
+        self.layer_command.setObjectName("LayerCommand")
+        layer1 = QVBoxLayout(self.layer_command)
+        layer1.setContentsMargins(0, 0, 0, 0)
+        layer1.setSpacing(0)
 
-        # Navigation Bar
-        self.nav_bar = NavBar(self)
+        self.command_bar = CommandBar(self.layer_command)
+        self.title_bar = self.command_bar
+        self._title_bar = self.command_bar
+        layer1.addWidget(self.command_bar)
+        ws_layout.addWidget(self.layer_command)
+
+        self.tab_widget = TabWidget(self, homepage_url=self._active_profile.homepage)
+        self._tabs = self.tab_widget
+        self.layer_tabs = self.tab_widget.tab_strip
+        self.layer_tabs.setObjectName("LayerTabs")
+        self.command_bar.set_tabs_widget(self.layer_tabs)
+
+        self.command_bar.shield_requested.connect(self._on_shield_clicked)
+        self.command_bar.home_requested.connect(
+            lambda: self._navigate(self._active_profile.homepage or HOME_URL)
+        )
+
+        # --- Layer 2: Place / URL row ---
+        self.layer_nav = QWidget(self.workspace_widget)
+        self.layer_nav.setObjectName("LayerNav")
+        layer2 = QVBoxLayout(self.layer_nav)
+        layer2.setContentsMargins(0, 0, 0, 0)
+        layer2.setSpacing(0)
+
+        self.nav_bar = NavBar(self.layer_nav)
         self._nav_bar = self.nav_bar
-        ws_layout.addWidget(self.nav_bar)
+        layer2.addWidget(self.nav_bar)
+        ws_layout.addWidget(self.layer_nav)
 
-        # Hidden / Backwards compatibility button references
         self._back_btn = self.nav_bar.back_btn
         self._fwd_btn = self.nav_bar.fwd_btn
         self._refresh_btn = self.nav_bar.reload_btn
         self._url_bar = self.nav_bar.url_bar
         self.url_bar = self.nav_bar.url_bar
 
-        # Connect NavBar signals
         self.nav_bar.navigate_requested.connect(self._navigate_from_input)
         self.nav_bar.refresh_requested.connect(self._refresh_page)
         self.nav_bar.settings_requested.connect(self._open_settings)
         self.nav_bar.profile_requested.connect(self.show_profile_selector)
         self.nav_bar.back_requested.connect(self._go_back)
         self.nav_bar.forward_requested.connect(self._go_forward)
+        self.nav_bar.shield_requested.connect(self._on_shield_clicked)
 
-        # Bookmarks Bar (instantiated but hidden/not added to layout to keep homepage clean per M4 R4)
+        # Bookmarks Bar (hidden by default — clean homepage)
         self.bookmarks_bar = QWidget(self)
         self.bookmarks_bar.setObjectName("BookmarksBar")
         self.bookmarks_bar.setFixedHeight(28)
@@ -203,10 +285,24 @@ class OwlBrowser(QMainWindow):
         bm_layout.addStretch()
         self.bookmarks_bar.hide()
 
-        # Tab Widget
-        self.tab_widget = TabWidget(self, homepage_url=self._active_profile.homepage)
-        self._tabs = self.tab_widget
-        ws_layout.addWidget(self.tab_widget)
+        # --- Layer 3: Page content + docked Ask Owl panel (pushes right) ---
+        self.layer_content = QWidget(self.workspace_widget)
+        self.layer_content.setObjectName("LayerContent")
+        content_row = QHBoxLayout(self.layer_content)
+        content_row.setContentsMargins(0, 0, 0, 0)
+        content_row.setSpacing(0)
+
+        self.page_column = QWidget(self.layer_content)
+        self.page_column.setObjectName("PageColumn")
+        page_layout = QVBoxLayout(self.page_column)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+        page_layout.addWidget(self.tab_widget, 1)
+
+        self.ai_panel = AISidePanel(self.layer_content)
+        content_row.addWidget(self.page_column, 1)
+        content_row.addWidget(self.ai_panel, 0)
+        ws_layout.addWidget(self.layer_content, 1)
 
         self.tab_widget.new_tab_requested.connect(lambda: self.add_new_tab())
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
@@ -271,13 +367,16 @@ class OwlBrowser(QMainWindow):
         QShortcut(QKeySequence("Escape"), self, self.hide)
 
     def _apply_stealth(self):
-        """Apply display affinity to hide window from screen capture."""
+        """Apply OS capture-exclusion to hide the window from screen recording."""
+        if getattr(self, "_stealth_applied", False):
+            return
         hwnd = int(self.winId())
         success = apply_display_affinity(hwnd)
         if success:
+            self._stealth_applied = True
             logger.info("Stealth mode activated: window is invisible to screen capture.")
         else:
-            logger.warning("Failed to activate stealth mode.")
+            logger.warning("Failed to activate stealth mode (will retry if scheduled).")
 
     # --- Tab management ---
 
@@ -343,13 +442,15 @@ class OwlBrowser(QMainWindow):
             return
 
         cleaned_lower = cleaned.lower()
-        if cleaned_lower in ("chrome://settings", "phantom://settings", "owl://settings", "about:settings"):
+        # owl://settings, about:settings, or any scheme://settings habit alias
+        if cleaned_lower == "about:settings" or (
+            "://" in cleaned_lower and cleaned_lower.rsplit("://", 1)[-1] == "settings"
+        ):
             self._open_settings()
             return
 
-        explicit_schemes = ("http://", "https://", "file://", "about:", "chrome://", "phantom://", "owl://", "ftp://", "data:")
-
-        if cleaned_lower.startswith(explicit_schemes):
+        if cleaned_lower.startswith(("http://", "https://", "file://", "about:", "ftp://", "data:", "owl://", "phantom://")) \
+                or ("://" in cleaned_lower and " " not in cleaned):
             url_str = cleaned
         elif (cleaned_lower.startswith("localhost") or cleaned_lower.startswith("127.0.0.1")) and " " not in cleaned:
             url_str = "http://" + cleaned
@@ -422,6 +523,13 @@ class OwlBrowser(QMainWindow):
         self.nav_bar.set_profile_avatar(self._active_profile.avatar)
         self.tab_widget.set_homepage_url(self._active_profile.homepage)
 
+    def _on_shield_clicked(self):
+        """Surface ephemeral / stealth status from the omnibox shield chip."""
+        logger.info("Shields: ephemeral OTR profile active; capture exclusion enabled.")
+        self.nav_bar.shield_btn.setToolTip(
+            "Shields up · Ephemeral session · Hidden from screen capture"
+        )
+
     def _focus_url_bar(self):
         self.nav_bar.url_bar.setFocus()
         self.nav_bar.url_bar.selectAll()
@@ -431,10 +539,8 @@ class OwlBrowser(QMainWindow):
     def _toggle_maximize(self):
         if self.isMaximized():
             self.showNormal()
-            self.title_bar.max_btn.setText("□")
         else:
             self.showMaximized()
-            self.title_bar.max_btn.setText("❐")
 
 
 PhantomBrowser = OwlBrowser

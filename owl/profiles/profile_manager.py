@@ -80,8 +80,8 @@ class ProfileManager:
     def __init__(self, json_path: Optional[str] = None, storage_path: Optional[str] = None):
         path = json_path or storage_path
         if path is None:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            path = os.path.join(base_dir, "profiles.json")
+            from owl.paths import PROFILES_JSON
+            path = PROFILES_JSON
         self.json_path = path
         self.storage_path = path
         self.profiles: List[Profile] = []

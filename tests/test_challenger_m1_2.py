@@ -21,8 +21,8 @@ from PyQt6.QtNetwork import QLocalSocket
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtWidgets import QApplication
 
-from profile_manager import Profile, ProfileManager, create_otr_web_profile, sanitize_search_engine
-from single_instance import DEFAULT_APP_KEY, SingleInstanceGuard
+from owl.profiles.profile_manager import Profile, ProfileManager, create_otr_web_profile, sanitize_search_engine
+from owl.stealth.single_instance import DEFAULT_APP_KEY, SingleInstanceGuard
 
 
 class TestSingleInstanceAdversarialEdgeCases(unittest.TestCase):

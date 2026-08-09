@@ -20,14 +20,14 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
-from browser import OwlBrowser, PhantomBrowser
-from title_bar import TitleBar
-from profile_selector import ProfileSelector
-from settings_view import SettingsView
-from single_instance import SingleInstanceGuard
-from profile_manager import ProfileManager, Profile
+from owl.workspace.main_window import OwlBrowser, PhantomBrowser
+from owl.shell.title_bar import TitleBar
+from owl.profiles.profile_selector import ProfileSelector
+from owl.settings.view import SettingsView
+from owl.stealth.single_instance import SingleInstanceGuard
+from owl.profiles.profile_manager import ProfileManager, Profile
 from hotkey import GlobalHotkey
-from display_affinity import WDA_EXCLUDEFROMCAPTURE, apply_display_affinity
+from owl.stealth.display_affinity import WDA_EXCLUDEFROMCAPTURE, apply_display_affinity
 
 
 class TestM4RebrandingAndPolish(unittest.TestCase):
@@ -54,20 +54,26 @@ class TestM4RebrandingAndPolish(unittest.TestCase):
         # 1. Main window title
         self.assertEqual(self.browser.windowTitle(), "Owl")
 
-        # 2. TitleBar label
-        self.assertEqual(self.browser.title_bar.title_label.text(), "🦉 Owl")
+        # 2. Handler branding — owl logo icon only (no wordmark in the shell)
+        self.assertTrue(
+            hasattr(self.browser.title_bar, "owl_btn")
+            and not self.browser.title_bar.owl_btn.icon().isNull(),
+            "Title/handler bar must show owl logo icon.",
+        )
+        self.assertEqual(self.browser.title_bar.title_label.text(), "")
 
         # 3. ProfileSelector header
         profiles = self.pm.load_profiles()
         selector = ProfileSelector(profiles=profiles)
-        header_labels = selector.findChildren(type(selector.findChild(type(self.browser.title_bar.title_label))))
+        from PyQt6.QtWidgets import QLabel
+        header_labels = selector.findChildren(QLabel)
         owl_header_found = any("Owl" in label.text() for label in header_labels if label.text())
         self.assertTrue(owl_header_found, "ProfileSelector must display 'Owl' in header label.")
 
         # 4. SettingsView About section
         settings_tab = self.browser._open_settings()
         about_page = settings_tab.stack.widget(4)
-        about_labels = about_page.findChildren(type(self.browser.title_bar.title_label))
+        about_labels = about_page.findChildren(QLabel)
         about_texts = [lbl.text() for lbl in about_labels if lbl.text()]
         self.assertTrue(any("About Owl" in text for text in about_texts), "About section title must be 'About Owl'")
         self.assertTrue(any("Owl v2" in text for text in about_texts), "Version string must contain 'Owl v2'")
@@ -97,7 +103,8 @@ class TestM4RebrandingAndPolish(unittest.TestCase):
         self.assertEqual(self.browser._active_profile.name, "Alpha Stealth")
         self.assertEqual(self.browser.nav_bar.profile_btn.text(), "🚀")
         self.assertEqual(self.browser.tab_widget._homepage_url, "https://duckduckgo.com")
-        self.assertEqual(self.browser.title_bar.title_label.text(), "🦉 Owl")
+        self.assertEqual(self.browser.title_bar.title_label.text(), "")
+        self.assertFalse(self.browser.title_bar.owl_btn.icon().isNull())
 
         # Open settings view and verify profile dropdown & active field synchronization
         settings_tab = self.browser._open_settings()
@@ -176,13 +183,17 @@ class TestM4SingleInstanceAndStealth(unittest.TestCase):
         secondary_guard.release(key)
 
     def test_stealth_window_flags_and_affinity(self):
-        """Verify OwlBrowser window flags (Tool, WindowStaysOnTopHint, Window) and WDA display affinity."""
+        """Verify OwlBrowser window flags (WindowStaysOnTopHint, Window; no Tool so it stays on outside click)."""
         browser = OwlBrowser(show_profile_selector_on_start=False)
         flags = browser.windowFlags()
 
-        self.assertTrue(bool(flags & Qt.WindowType.Tool), "Must have Tool window flag (no taskbar icon).")
+        from owl.workspace.main_window import _window_type
+        self.assertEqual(
+            _window_type(flags),
+            Qt.WindowType.Window,
+            "Must be a normal Window (not Tool — Tool hides on macOS outside click).",
+        )
         self.assertTrue(bool(flags & Qt.WindowType.WindowStaysOnTopHint), "Must have WindowStaysOnTopHint flag.")
-        self.assertTrue(bool(flags & Qt.WindowType.Window), "Must have Window flag.")
 
         # Verify win32 display affinity function
         hwnd = int(browser.winId())

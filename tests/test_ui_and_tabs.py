@@ -3,8 +3,8 @@ test_ui_and_tabs.py - Tier 1 & Tier 2 Opaque-Box E2E Tests for Modern Frameless 
 
 Covers:
 - Frameless TitleBar window controls (min, max, close).
-- Reload-only NavBar layout (reload button, prominent URL bar, no back/forward buttons per R1).
-- Chrome-style TabBar with '+' new tab button on right edge.
+- Brave-inspired NavBar layout (back/forward/reload, prominent URL bar, shield).
+- Owl-style TabBar with '+' new tab button on right edge.
 - Card-based ProfileSelector screen/view.
 - Tab closure behavior (last tab close navigates to homepage).
 - Boundary conditions: double-click title bar maximize, search engine query formatting, rapid tab stress test, tab moving, title truncation.
@@ -16,11 +16,11 @@ from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow
 from PyQt6.QtCore import Qt, QUrl, QEvent, QPointF
 from PyQt6.QtGui import QMouseEvent
 
-from title_bar import TitleBar
-from nav_bar import NavBar
-from tab_bar import TabWidget
-from profile_selector import ProfileSelector
-from profile_manager import Profile
+from owl.shell.title_bar import TitleBar
+from owl.shell.nav_bar import NavBar
+from owl.shell.tab_bar import TabWidget
+from owl.profiles.profile_selector import ProfileSelector
+from owl.profiles.profile_manager import Profile
 
 
 class TestUIAndTabs(unittest.TestCase):
@@ -45,16 +45,25 @@ class TestUIAndTabs(unittest.TestCase):
         self.assertIsNotNone(self.title_bar.min_btn, "TitleBar must have minimize button.")
         self.assertIsNotNone(self.title_bar.max_btn, "TitleBar must have maximize button.")
         self.assertIsNotNone(self.title_bar.close_btn, "TitleBar must have close button.")
-        self.assertIn("Owl", self.title_bar.title_label.text(), "TitleBar label must contain app title.")
+        self.assertTrue(
+            hasattr(self.title_bar, "owl_btn") and not self.title_bar.owl_btn.icon().isNull(),
+            "TitleBar must show owl logo icon (no wordmark text).",
+        )
+        self.assertEqual(self.title_bar.title_label.text(), "", "TitleBar must not show browser name text.")
 
-    def test_tier1_reload_only_navbar(self):
-        """Tier 1: NavBar features reload button, URL bar, settings & profile triggers (reload-only nav per R1)."""
+    def test_tier1_brave_navbar(self):
+        """Tier 1: NavBar features back/forward/reload, URL bar, shield, settings & profile."""
         self.assertIsNotNone(self.nav_bar.reload_btn, "NavBar must have reload button.")
+        self.assertIsNotNone(self.nav_bar.back_btn, "NavBar must have back button.")
+        self.assertIsNotNone(self.nav_bar.fwd_btn, "NavBar must have forward button.")
+        self.assertTrue(self.nav_bar.back_btn.isVisibleTo(self.nav_bar))
+        self.assertTrue(self.nav_bar.fwd_btn.isVisibleTo(self.nav_bar))
         self.assertIsNotNone(self.nav_bar.url_bar, "NavBar must have prominent URL bar.")
+        self.assertIsNotNone(self.nav_bar.shield_btn, "NavBar must have shield button.")
         self.assertIsNotNone(self.nav_bar.settings_btn, "NavBar must have settings button.")
         self.assertIsNotNone(self.nav_bar.profile_btn, "NavBar must have profile button.")
 
-    def test_tier1_chrome_style_tabbar_new_tab_button(self):
+    def test_tier1_owl_style_tabbar_new_tab_button(self):
         """Tier 1: TabWidget features '+' new tab button on the right edge of the tab bar."""
         self.assertIsNotNone(self.tab_widget.new_tab_btn, "TabWidget must have '+' new tab button.")
         self.assertEqual(self.tab_widget.new_tab_btn.text(), "+", "New tab button label must be '+'.")

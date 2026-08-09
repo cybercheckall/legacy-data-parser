@@ -1,13 +1,15 @@
 """
-main.py - Phantom Workspace Application Entrypoint.
+main.py — Owl application entrypoint.
 
-Launches Phantom Workspace with single-instance enforcement, modern dark glassmorphic styling,
+Launches Owl with single-instance enforcement, workspace styling,
 and profile selector startup flow.
 """
 
 import logging
 import os
 import sys
+
+from owl.paths import BRAND_DIR, PROJECT_ROOT
 
 LOG_FILE = os.path.expanduser("~/Desktop/stealth_browser.log")
 
@@ -29,25 +31,29 @@ def main():
     logger = logging.getLogger(__name__)
     logger.info("=== Owl starting ===")
 
+    # Ensure project root is importable when launched as a script
+    if PROJECT_ROOT not in sys.path:
+        sys.path.insert(0, PROJECT_ROOT)
+
     from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtCore import QTimer
     from PyQt6.QtGui import QIcon
 
-    from browser import OwlBrowser, PhantomBrowser
-    from single_instance import SingleInstanceGuard
-    from styles import DARK_GLASS_STYLE
+    from owl.workspace.main_window import OwlBrowser
+    from owl.stealth.display_affinity import apply_app_stealth_policy
+    from owl.stealth.single_instance import SingleInstanceGuard
+    from owl.design.stylesheet import DARK_GLASS_STYLE
 
     app = QApplication(sys.argv)
     app.setApplicationName("Owl")
     app.setQuitOnLastWindowClosed(True)
+    apply_app_stealth_policy()
 
-    icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.ico")
+    icon_path = os.path.join(BRAND_DIR, "owl_icon.ico")
     if not os.path.exists(icon_path):
-        icon_path = os.path.join(os.path.dirname(__file__), "owl_icon.jpg")
+        icon_path = os.path.join(BRAND_DIR, "owl_icon.jpg")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
-    # Enforce single instance application guard
     guard = SingleInstanceGuard("OwlBrowserApp")
     if not guard.try_acquire():
         logger.info("Secondary instance detected. Primary instance notified; exiting with code 0.")
@@ -55,7 +61,6 @@ def main():
 
     app.aboutToQuit.connect(guard.release)
 
-    # Apply modern dark glassmorphism stylesheet application-wide
     app.setStyleSheet(DARK_GLASS_STYLE)
 
     browser = OwlBrowser(show_profile_selector_on_start=True)

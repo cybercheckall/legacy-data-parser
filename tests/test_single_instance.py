@@ -14,7 +14,7 @@ import pytest
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QCoreApplication
 
-from single_instance import SingleInstanceGuard
+from owl.stealth.single_instance import SingleInstanceGuard
 
 
 class TestSingleInstanceEnforcement(unittest.TestCase):

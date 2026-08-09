@@ -15,9 +15,9 @@ from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent, QIcon
 from PIL import Image
 
-from ai_panel import AISidePanel, AIFloatingButton
-from display_affinity import apply_display_affinity, WDA_EXCLUDEFROMCAPTURE
-from browser import OwlBrowser, PhantomBrowser
+from owl.ai.panel import AISidePanel, AIFloatingButton
+from owl.stealth.display_affinity import apply_display_affinity, WDA_EXCLUDEFROMCAPTURE
+from owl.workspace.main_window import OwlBrowser, PhantomBrowser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Challenger2")
@@ -91,8 +91,9 @@ def run_stealth_stress_verification():
 
     # B. Window Flags & Persistence Stress Verification
     initial_flags = win.windowFlags()
+    from owl.workspace.main_window import _window_type
     assert bool(initial_flags & Qt.WindowType.WindowStaysOnTopHint), "WindowStaysOnTopHint flag missing!"
-    assert bool(initial_flags & Qt.WindowType.Tool), "Tool flag missing!"
+    assert _window_type(initial_flags) == Qt.WindowType.Window, "Must be Window type (not Tool)!"
 
     # State transition matrix for flag persistence
     transitions = [
@@ -110,7 +111,7 @@ def run_stealth_stress_verification():
         action()
         current_flags = win.windowFlags()
         assert bool(current_flags & Qt.WindowType.WindowStaysOnTopHint), f"WindowStaysOnTopHint lost after {name}!"
-        assert bool(current_flags & Qt.WindowType.Tool), f"Tool flag lost after {name}!"
+        assert _window_type(current_flags) == Qt.WindowType.Window, f"Window type lost after {name}!"
         logger.info(f"Flag persistence verified after state transition: {name}")
 
     # C. Global Hotkey & Shortcut Callback Stress

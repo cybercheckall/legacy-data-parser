@@ -45,7 +45,7 @@ def setup_test_env(tmp_path, monkeypatch):
     desktop_dir.mkdir(parents=True, exist_ok=True)
     yield desktop_dir
     try:
-        import single_instance
+        import owl.stealth.single_instance as single_instance
         if hasattr(single_instance, "SingleInstanceGuard") and hasattr(single_instance.SingleInstanceGuard, "release_all"):
             single_instance.SingleInstanceGuard.release_all()
     except Exception:
@@ -57,7 +57,7 @@ def _setup_fallback_modules():
 
     # 1. display_affinity setup & patch for offscreen platform
     try:
-        import display_affinity
+        import owl.stealth.display_affinity as display_affinity
     except ImportError:
         mod = types.ModuleType("display_affinity")
         mod.WDA_EXCLUDEFROMCAPTURE = 0x00000011
@@ -67,7 +67,7 @@ def _setup_fallback_modules():
         mod.set_stealth_affinity = apply_display_affinity
         sys.modules["display_affinity"] = mod
 
-    import display_affinity
+    import owl.stealth.display_affinity as display_affinity
     orig_apply = getattr(display_affinity, "apply_display_affinity", None)
     def safe_apply(hwnd: int) -> bool:
         if not hwnd or hwnd < 0:
@@ -85,6 +85,7 @@ def _setup_fallback_modules():
     display_affinity.set_stealth_affinity = safe_apply
     if not hasattr(display_affinity, "WDA_EXCLUDEFROMCAPTURE"):
         display_affinity.WDA_EXCLUDEFROMCAPTURE = 0x00000011
+    sys.modules["display_affinity"] = display_affinity
 
     # 2. hotkey
     try:
@@ -126,7 +127,8 @@ def _setup_fallback_modules():
 
     # 3. single_instance
     try:
-        import single_instance
+        import owl.stealth.single_instance as single_instance
+        sys.modules["single_instance"] = single_instance
     except ImportError:
         mod = types.ModuleType("single_instance")
         class SingleInstanceGuard(QObject):
@@ -180,7 +182,8 @@ def _setup_fallback_modules():
 
     # 4. profile_manager
     try:
-        import profile_manager
+        import owl.profiles.profile_manager as profile_manager
+        sys.modules["profile_manager"] = profile_manager
     except ImportError:
         mod = types.ModuleType("profile_manager")
         from dataclasses import dataclass, asdict
@@ -306,7 +309,8 @@ def _setup_fallback_modules():
 
     # 5. title_bar
     try:
-        import title_bar
+        import owl.shell.title_bar as title_bar
+        sys.modules["title_bar"] = title_bar
     except ImportError:
         mod = types.ModuleType("title_bar")
         class TitleBar(QWidget):
@@ -332,7 +336,8 @@ def _setup_fallback_modules():
 
     # 6. nav_bar
     try:
-        import nav_bar
+        import owl.shell.nav_bar as nav_bar
+        sys.modules["nav_bar"] = nav_bar
     except ImportError:
         mod = types.ModuleType("nav_bar")
         class NavBar(QWidget):
@@ -371,7 +376,8 @@ def _setup_fallback_modules():
 
     # 7. tab_bar
     try:
-        import tab_bar
+        import owl.shell.tab_bar as tab_bar
+        sys.modules["tab_bar"] = tab_bar
     except ImportError:
         mod = types.ModuleType("tab_bar")
         class TabWidget(QTabWidget):
@@ -412,7 +418,8 @@ def _setup_fallback_modules():
 
     # 8. profile_selector
     try:
-        import profile_selector
+        import owl.profiles.profile_selector as profile_selector
+        sys.modules["profile_selector"] = profile_selector
     except ImportError:
         mod = types.ModuleType("profile_selector")
         class ProfileSelector(QWidget):
@@ -435,7 +442,8 @@ def _setup_fallback_modules():
 
     # 9. ai_panel
     try:
-        import ai_panel
+        import owl.ai.panel as ai_panel
+        sys.modules["ai_panel"] = ai_panel
     except ImportError:
         mod = types.ModuleType("ai_panel")
         class AIFloatingButton(QPushButton):
@@ -489,7 +497,8 @@ def _setup_fallback_modules():
 
     # 10. settings_view
     try:
-        import settings_view
+        import owl.settings.view as settings_view
+        sys.modules["settings_view"] = settings_view
     except ImportError:
         mod = types.ModuleType("settings_view")
         class SettingsView(QWidget):
@@ -564,8 +573,8 @@ def _setup_fallback_modules():
         def __init__(self):
             super().__init__()
             self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.WindowStaysOnTopHint)
-            from nav_bar import NavBar
-            from tab_bar import TabWidget
+            from owl.shell.nav_bar import NavBar
+            from owl.shell.tab_bar import TabWidget
             from hotkey import HotkeyManager
 
             self.nav_bar = NavBar(self)
@@ -584,7 +593,7 @@ def _setup_fallback_modules():
 
         def apply_stealth_affinity(self):
             hwnd = int(self.winId())
-            from display_affinity import apply_display_affinity
+            from owl.stealth.display_affinity import apply_display_affinity
             res = apply_display_affinity(hwnd)
             self.stealth_affinity_applied = res
             return res

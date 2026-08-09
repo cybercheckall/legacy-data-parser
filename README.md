@@ -1,54 +1,115 @@
 # 🦉 Owl Stealth Workspace
 
-**Owl** is a premium, next-generation stealth browser designed for maximum privacy, modern aesthetics, and seamless AI integration. Built using PyQt6 and QtWebEngine, it acts as a fully isolated, zero-trace workspace that remains completely invisible to screen capture software and intrusive applications.
+**Owl** is a premium, next-generation stealth browser designed for maximum privacy, modern aesthetics, and seamless AI integration. Built using PyQt6 and QtWebEngine, it acts as a fully isolated, zero-trace workspace that remains difficult for screen-capture tools to record.
+
+## Platforms
+
+| Platform | Browser UI | Capture exclusion | Taskbar / Dock hiding |
+|----------|------------|-------------------|------------------------|
+| **Windows** | ✅ | `SetWindowDisplayAffinity` | Always-on-top window |
+| **macOS** | ✅ | `NSWindowSharingNone` | Accessory activation policy (no Dock icon) |
+| Linux | Partial | Not supported | Always-on-top (best-effort) |
+
+Owl stays visible when you click outside the window (Esc still hides intentionally).
 
 ## ✨ Key Features
 
 ### 🛡️ Ultimate Stealth & Privacy
-- **Screen-Capture Invisibility**: Leverages the Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` to render the browser completely invisible to screen recording software (OBS Studio, Zoom, Teams) and screenshot utilities.
-- **Taskbar & Alt-Tab Suppression**: Uses `WS_EX_TOOLWINDOW` and `WS_EX_NOACTIVATE` to run as a floating widget, preventing the application from appearing in the Windows Taskbar or the Alt-Tab switcher.
-- **Always-On-Top Layering**: Forces the Windows Desktop Window Manager (DWM) to render the browser above all other applications, ensuring it never gets buried behind other windows.
-- **Direct Launch**: Simply double-click the executable to launch the browser — no hotkeys required.
-- **Zero-Trace Ephemeral Profiles**: All browsing data (cookies, history, cache) is kept strictly off-the-record in memory. Once the browser is closed, all session data is permanently destroyed.
+- **Screen-Capture Invisibility**: On Windows uses `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`. On macOS uses `NSWindow.setSharingType(NSWindowSharingNone)`.
+- **Taskbar / Dock Suppression**: Windows Tool window flags; macOS accessory activation policy.
+- **Always-On-Top Layering**: Stays above other applications.
+- **Direct Launch**: Double-click / `python main.py` — no hotkeys required.
+- **Zero-Trace Ephemeral Profiles**: Cookies, history, and cache stay off-the-record in memory and are destroyed on close.
 
-### 🎨 Premium Glassmorphic UI
-- **Custom Frameless Design**: Stripped of the standard Windows borders and title bars for a pure, clean, modern dark card aesthetic.
-- **Window Opacity Slider**: A built-in slider in the custom title bar allows users to dynamically adjust the transparency of the entire application window on the fly.
-- **Chrome-Style Tab System**: Beautifully curved tabs with dynamic '+' button placement that perfectly mimics the premium feel of Google Chrome.
-- **Guest Mode Default**: The profile selector defaults to a clean, isolated Guest Mode profile upon startup.
-- **Clean Google Navigation**: The homepage and URL bar are designed to be completely distraction-free, defaulting to a pristine Google Search page without cluttered shortcuts.
+### 🎨 Stealth Workspace UI
+```
+L1  Handler   ●●● · 🦉 logo · tabs · + · shield
+L2  Place     icon nav · omnibox · utilities
+L3  Content   page (+ Ask Owl pill at bottom)
+```
+- Icon-first branding (owl logo, no wordmark in the shell)
+- Tabs live in the window handler; URL sits in a slim row beneath
+- Guest Mode by default · clean Google homepage
 
 ### 🤖 Integrated AI Co-Pilot
-- **Floating AI Sparkle**: A discreet, pulsing floating sparkle button (`✦`) sits at the bottom center of the workspace.
-- **Sliding ChatGPT Panel**: Clicking the floating button slides out a sleek 400px side panel running a fully integrated ChatGPT webview, allowing you to ask questions and brainstorm without ever leaving your workspace.
+- Bottom **Ask Owl** pill on the content layer opens a sliding AI side panel
+
+## 📁 Project layout
+
+```
+owl/
+  shell/       # Handler + Place rows (command bar, tabs, nav)
+  workspace/   # Main window + content layer
+  profiles/    # Identity & OTR isolation
+  settings/    # Preferences UI
+  ai/          # Ask Owl co-pilot
+  stealth/     # Capture exclusion, single-instance
+  design/      # Tokens, stylesheet, icons
+assets/brand/  # Icons & brand art
+packaging/     # PyInstaller specs
+tests/
+main.py        # Entrypoint
+```
 
 ## 🚀 Installation & Usage
 
+### Requirements
+- Python **3.12+**
+- macOS 12+ **or** Windows 10+
+
 ### Running from Source
-Ensure you have Python 3.12+ installed along with the required dependencies (`PyQt6`, `pytest`).
-```powershell
-# Clone the repository
+
+```bash
+# Clone
 git clone https://github.com/Raghuvaranlokati/private-brower.git
 cd private-brower
 
-# Run the application
+# Create venv (recommended)
+python3.12 -m venv .venv
+source .venv/bin/activate          # macOS / Linux
+# .venv\Scripts\activate           # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
 python main.py
+
+# Dev mode — auto-restart when you edit .py files
+python dev.py
 ```
 
-### Running the Standalone Executable
-If you prefer not to use Python, you can run the compiled standalone application directly:
+### Windows Standalone Executable
 1. Navigate to the `dist` folder.
 2. Double-click `Owl.exe`.
 
-*(Note: If you run `Owl.exe` from your desktop, make sure to keep the application closed when attempting to update or replace the executable).*
+Build with PyInstaller (Windows):
 
-## 🧪 Testing & Verification
-This project maintains a rigorous **100% test coverage** standard.
-Run the automated test suite to verify the integrity of all features, including the stealth protections and UI components:
 ```powershell
+pyinstaller packaging/owl.spec
+```
+
+### macOS App (`Owl.app`)
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+pyinstaller --noconfirm --clean packaging/owl_mac.spec
+open dist/Owl.app
+# Optional: put on Desktop
+cp -R dist/Owl.app ~/Desktop/
+```
+
+- First open: if Gatekeeper blocks it, right-click → **Open**.
+- Capture exclusion reduces visibility in many screen-sharing apps; some privileged capture APIs can still see the window (OS limitation).
+- Logs are written to `~/Desktop/stealth_browser.log`.
+- The app may stay out of the Dock (stealth accessory policy).
+
+## 🧪 Testing
+
+```bash
 pytest tests/ -v
 ```
-*(Currently passing 163 / 163 tests)*
 
 ---
 *Built with precision and stealth.* 🦉✨

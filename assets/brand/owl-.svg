@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420">
+  <defs>
+    <style>
+      .h { font: 700 14px 'SF Pro Text', Helvetica, Arial, sans-serif; fill: #202124; }
+      .s { font: 600 11px 'SF Pro Text', Helvetica, Arial, sans-serif; fill: #5f6368; }
+      .t { font: 400 12px 'SF Pro Text', Helvetica, Arial, sans-serif; fill: #202124; }
+      .m { font: 400 11px 'SF Pro Text', Helvetica, Arial, sans-serif; fill: #80868b; }
+      .label { font: 700 10px 'SF Pro Text', Helvetica, Arial, sans-serif; fill: #1a73e8; letter-spacing: 0.4px; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="420" fill="#f1f3f4"/>
+
+  <text x="40" y="36" class="h">Owl — Unified Command Bar (UX target)</text>
+  <text x="40" y="56" class="m">Everything dense in ONE top bar · Tabs below · Ask Owl bottom · Stays when clicking outside</text>
+
+  <!-- ===== WINDOW FRAME ===== -->
+  <rect x="40" y="80" width="1120" height="280" rx="12" fill="#ffffff" stroke="#dadce0"/>
+
+  <!-- ===== UNIFIED TOP BAR (menu-bar density) ===== -->
+  <rect x="40" y="80" width="1120" height="48" rx="12" fill="#e8eaed"/>
+  <rect x="40" y="104" width="1120" height="24" fill="#e8eaed"/>
+
+  <!-- traffic lights -->
+  <circle cx="64" cy="104" r="6" fill="#ff5f57"/>
+  <circle cx="84" cy="104" r="6" fill="#febc2e"/>
+  <circle cx="104" cy="104" r="6" fill="#28c840"/>
+
+  <!-- brand -->
+  <text x="128" y="109" class="s" font-weight="700" fill="#202124">Owl</text>
+
+  <!-- nav cluster -->
+  <g fill="none" stroke="#5f6368" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M188 104 H176 L184 96 M176 104 L184 112"/>
+    <path d="M206 104 H218 L210 96 M218 104 L210 112" opacity="0.35"/>
+    <path d="M244 96 a9 9 0 1 1 -2 12"/>
+    <path d="M239 94 h7 v7"/>
+  </g>
+
+  <!-- omnibox = primary focus of the bar -->
+  <rect x="270" y="88" width="620" height="32" rx="16" fill="#ffffff" stroke="#dadce0"/>
+  <circle cx="292" cy="104" r="7" fill="#f97316"/>
+  <text x="308" y="109" class="t" fill="#5f6368">Search Owl or type a URL</text>
+  <text x="820" y="109" class="t" fill="#f97316">🛡</text>
+  <text x="850" y="109" class="t" fill="#5f6368">☆</text>
+
+  <!-- right cluster: status-like, menu-bar density -->
+  <g transform="translate(920, 88)">
+    <!-- shield status chip -->
+    <rect x="0" y="4" width="72" height="24" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+    <text x="12" y="20" font-family="SF Pro Text, Helvetica, Arial, sans-serif" font-size="10" fill="#c2410c" font-weight="600">Ephemeral</text>
+    <!-- profile -->
+    <circle cx="100" cy="16" r="12" fill="#e8f0fe" stroke="#dadce0"/>
+    <text x="94" y="20" font-size="11">👤</text>
+    <!-- overflow -->
+    <text x="124" y="21" font-family="Arial" font-size="16" fill="#5f6368">⋮</text>
+  </g>
+
+  <text x="52" y="74" class="label">UNIFIED COMMAND BAR — put everything here</text>
+
+  <!-- ===== TABS ROW (down) ===== -->
+  <rect x="40" y="128" width="1120" height="36" fill="#f8f9fa"/>
+  <rect x="56" y="134" width="140" height="26" rx="8" fill="#ffffff" stroke="#dadce0"/>
+  <text x="76" y="151" class="t">New Tab</text>
+  <text x="176" y="151" class="m">×</text>
+  <text x="208" y="152" class="t" fill="#5f6368">+</text>
+  <text x="52" y="168" class="label" fill="#188038">TABS LAYER — below the bar</text>
+
+  <!-- ===== CONTENT ===== -->
+  <rect x="40" y="164" width="1120" height="196" fill="#ffffff"/>
+  <text x="60" y="220" class="m">Page content</text>
+
+  <!-- Ask Owl bottom -->
+  <rect x="556" y="300" width="128" height="40" rx="20" fill="#ffffff" stroke="#dadce0"/>
+  <text x="620" y="325" text-anchor="middle" class="t" font-weight="600">✦  Ask Owl</text>
+  <text x="52" y="348" class="label" fill="#ea4335">AI — bottom only (not in the top bar)</text>
+
+  <!-- ===== UX NOTES ===== -->
+  <text x="40" y="390" class="s">Hierarchy: 1 command bar → 2 tabs → 3 content · One job per row · Omnibox is the hero</text>
+  <text x="40" y="408" class="m">Do not mirror macOS system icons (Wi‑Fi, Control Center) inside Owl — keep OS bar for OS, Owl bar for browse.</text>
+</svg>

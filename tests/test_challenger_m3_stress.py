@@ -2,7 +2,7 @@
 test_challenger_m3_stress.py - Comprehensive Adversarial Stress Tests for Milestone 3.
 
 Adversarial stress-testing of:
-1. Navigation routing (chrome://settings, phantom://settings, about:settings, scheme auto-prefixing, search queries via Google vs DuckDuckGo).
+1. Navigation routing (owl://settings, phantom://settings, about:settings, scheme auto-prefixing, search queries via Google vs DuckDuckGo).
 2. Concurrency and UI state synchronization (active profile, SettingsView, navbar avatar, search engine query generation, AI panel transitions).
 """
 
@@ -14,10 +14,10 @@ import urllib.parse
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QUrl
 
-from browser import PhantomBrowser
-from profile_manager import ProfileManager, Profile
-from settings_view import SettingsView
-from ai_panel import AISidePanel, AIFloatingButton
+from owl.workspace.main_window import PhantomBrowser
+from owl.profiles.profile_manager import ProfileManager, Profile
+from owl.settings.view import SettingsView
+from owl.ai.panel import AISidePanel, AIFloatingButton
 
 
 class TestNavigationRoutingAdversarial(unittest.TestCase):
@@ -40,12 +40,12 @@ class TestNavigationRoutingAdversarial(unittest.TestCase):
         self.tmp_dir.cleanup()
 
     def test_settings_url_routing_aliases(self):
-        """Verify routing for chrome://settings, phantom://settings, about:settings with case & space variations."""
+        """Verify routing for owl://settings, phantom://settings, about:settings with case & space variations."""
         aliases = [
-            "chrome://settings",
+            "owl://settings",
             "phantom://settings",
             "about:settings",
-            "CHROME://SETTINGS",
+            "OWL://SETTINGS",
             "  phantom://settings  ",
             "About:Settings",
         ]
@@ -69,7 +69,7 @@ class TestNavigationRoutingAdversarial(unittest.TestCase):
         self.browser.add_new_tab("https://www.google.com")
 
         for i in range(20):
-            alias = "chrome://settings" if i % 2 == 0 else "phantom://settings"
+            alias = "owl://settings" if i % 2 == 0 else "phantom://settings"
             self.browser._navigate_from_input(alias)
 
         # Verify only 1 SettingsView tab exists in total

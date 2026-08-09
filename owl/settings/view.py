@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QFormLayout, QMessageBox, QFrame
 )
 
-from profile_manager import ProfileManager, Profile, VALID_SEARCH_ENGINES
+from owl.profiles.profile_manager import ProfileManager, Profile, VALID_SEARCH_ENGINES
 
 logger = logging.getLogger(__name__)
 
@@ -442,7 +442,7 @@ class SettingsView(QWidget):
         card_layout = QVBoxLayout(card)
 
         theme_label = QLabel("Active Theme: Dark Glassmorphic (Default)", card)
-        theme_label.setStyleSheet("color: #818cf8; font-weight: bold;")
+        theme_label.setStyleSheet("color: #fb923c; font-weight: bold;")
         card_layout.addWidget(theme_label)
 
         desc = QLabel("Owl features an ultra-modern dark glass interface with smooth micro-animations and zero distractive elements.", card)
@@ -478,7 +478,7 @@ class SettingsView(QWidget):
         card_layout.addWidget(ver)
 
         features = (
-            "• Stealth Protection: SetWindowDisplayAffinity (WDA_EXCLUDEFROMCAPTURE)\n"
+            "• Stealth Protection: Windows capture affinity + macOS NSWindowSharingNone\n"
             "• Zero Disk Footprint: Ephemeral Off-The-Record QWebEngine Profile\n"
             "• Single-Instance Guard: Local Socket IPC Window Activation\n"
             "• Integrated AI Side Panel: ChatGPT Assistant"
@@ -522,7 +522,7 @@ class SettingsView(QWidget):
         """Normalize homepage URL with https:// scheme, update active profile, and emit signal."""
         cleaned = url.strip() if url else ""
         if cleaned:
-            schemes = ("http://", "https://", "file://", "chrome://", "phantom://", "owl://", "about:")
+            schemes = ("http://", "https://", "file://", "phantom://", "owl://", "about:")
             if not cleaned.lower().startswith(schemes):
                 cleaned = "https://" + cleaned
         else:

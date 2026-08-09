@@ -21,8 +21,8 @@ from PyQt6.QtCore import QCoreApplication, QEventLoop, QTimer
 from PyQt6.QtNetwork import QLocalSocket
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 
-from profile_manager import Profile, ProfileManager, create_otr_web_profile, sanitize_search_engine
-from single_instance import SingleInstanceGuard
+from owl.profiles.profile_manager import Profile, ProfileManager, create_otr_web_profile, sanitize_search_engine
+from owl.stealth.single_instance import SingleInstanceGuard
 
 
 class TestM1ProfileSystemAdversarial(unittest.TestCase):

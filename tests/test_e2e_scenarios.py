@@ -15,15 +15,15 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt, QEvent, QUrl
 from PyQt6.QtGui import QKeyEvent
 
-from single_instance import SingleInstanceGuard
-from profile_manager import Profile, ProfileManager
-from title_bar import TitleBar
-from nav_bar import NavBar
-from tab_bar import TabWidget
-from profile_selector import ProfileSelector
-from ai_panel import AIFloatingButton, AISidePanel
-from settings_view import SettingsView
-from display_affinity import apply_display_affinity
+from owl.stealth.single_instance import SingleInstanceGuard
+from owl.profiles.profile_manager import Profile, ProfileManager
+from owl.shell.title_bar import TitleBar
+from owl.shell.nav_bar import NavBar
+from owl.shell.tab_bar import TabWidget
+from owl.profiles.profile_selector import ProfileSelector
+from owl.ai.panel import AIFloatingButton, AISidePanel
+from owl.settings.view import SettingsView
+from owl.stealth.display_affinity import apply_display_affinity
 from hotkey import HotkeyManager
 from stealth_browser.main_window import MainWindow
 
@@ -73,9 +73,10 @@ class TestE2EScenariosAndPairwise(unittest.TestCase):
         # Secondary attempts acquire, fails, signals primary
         self.assertFalse(guard2.try_acquire())
 
-        # Confirm window flags preserved on primary
+        # Confirm window flags preserved on primary (no Tool — stays visible on outside click)
+        from owl.workspace.main_window import _window_type
         flags = win.windowFlags()
-        self.assertTrue(bool(flags & Qt.WindowType.Tool))
+        self.assertEqual(_window_type(flags), Qt.WindowType.Window)
         self.assertTrue(bool(flags & Qt.WindowType.WindowStaysOnTopHint))
 
         win.close()
@@ -235,9 +236,10 @@ class TestE2EScenariosAndPairwise(unittest.TestCase):
         res = apply_display_affinity(hwnd)
         self.assertTrue(res)
 
-        # 2. Window flags (Tool + StaysOnTop)
+        # 2. Window flags (StaysOnTop; no Tool so outside-click does not hide)
+        from owl.workspace.main_window import _window_type
         flags = win.windowFlags()
-        self.assertTrue(bool(flags & Qt.WindowType.Tool))
+        self.assertEqual(_window_type(flags), Qt.WindowType.Window)
         self.assertTrue(bool(flags & Qt.WindowType.WindowStaysOnTopHint))
 
         # 3. Esc key hide

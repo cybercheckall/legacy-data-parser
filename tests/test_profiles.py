@@ -17,7 +17,7 @@ import tempfile
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
-from profile_manager import Profile, ProfileManager, create_otr_web_profile
+from owl.profiles.profile_manager import Profile, ProfileManager, create_otr_web_profile
 
 
 class TestProfilesManagerAndSchema(unittest.TestCase):

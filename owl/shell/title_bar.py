@@ -1,37 +1,57 @@
 """
-title_bar.py - Frameless Dark Glass TitleBar Widget.
+title_bar.py - Frameless handler widget (owl logo, no wordmark).
 
-Provides frameless window drag support, window control buttons (min, max, close),
-double-click toggle maximize, and window title label.
+Provides frameless window drag support, traffic-light window controls,
+double-click toggle maximize, and owl brand icon.
 """
 
-from PyQt6.QtCore import Qt, QPoint, QEvent
-from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QMouseEvent, QIcon
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSlider
+
+from owl.design.icons import owl_logo_pixmap
 
 
 class TitleBar(QWidget):
-    """Custom frameless dark glass TitleBar widget."""
+    """Custom frameless title/handler bar with owl icon branding."""
 
-    def __init__(self, parent=None, title: str = "🦉 Owl"):
+    def __init__(self, parent=None, title: str = "Owl"):
         super().__init__(parent)
         self.setObjectName("TitleBar")
-        self.setFixedHeight(34)
-
+        self.setFixedHeight(36)
+        self._title = title
         self._drag_pos = None
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 0, 6, 0)
+        layout.setContentsMargins(12, 0, 6, 0)
         layout.setSpacing(6)
 
-        # Title label
-        self.title_label = QLabel(title, self)
+        self.close_btn = self._traffic("CloseButton", "#ff5f57", "Close", self._on_close)
+        self.min_btn = self._traffic("MinButton", "#febc2e", "Minimize", self._on_minimize)
+        self.max_btn = self._traffic("MaxButton", "#28c840", "Maximize / Restore", self._toggle_maximize)
+        layout.addWidget(self.close_btn)
+        layout.addWidget(self.min_btn)
+        layout.addWidget(self.max_btn)
+
+        layout.addSpacing(6)
+
+        logo = owl_logo_pixmap(20)
+        self.owl_btn = QPushButton(self)
+        self.owl_btn.setObjectName("OwlBrandBtn")
+        self.owl_btn.setFixedSize(28, 28)
+        self.owl_btn.setIcon(QIcon(logo))
+        self.owl_btn.setIconSize(QSize(20, 20))
+        self.owl_btn.setToolTip(title)
+        layout.addWidget(self.owl_btn)
+
+        # Compatibility: empty label (icon-only; tests assert brand via owl_btn)
+        self.title_label = QLabel("", self)
         self.title_label.setObjectName("TitleLabel")
-        layout.addWidget(self.title_label)
+        self.title_label.setToolTip(title)
+        self.title_label.hide()
 
         layout.addStretch()
 
-        # Window Opacity Slider (M2)
         self.opacity_slider = QSlider(Qt.Orientation.Horizontal, self)
         self.opacity_slider.setObjectName("OpacitySlider")
         self.opacity_slider.setRange(10, 100)
@@ -40,39 +60,27 @@ class TitleBar(QWidget):
         self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
         layout.addWidget(self.opacity_slider)
 
-        # Minimize button
-        self.min_btn = QPushButton("—", self)
-        self.min_btn.setObjectName("MinButton")
-        self.min_btn.setProperty("class", "TitleButton")
-        self.min_btn.setFixedSize(30, 24)
-        self.min_btn.setToolTip("Minimize")
-        self.min_btn.clicked.connect(self._on_minimize)
-        layout.addWidget(self.min_btn)
-
-        # Maximize / Restore button
-        self.max_btn = QPushButton("□", self)
-        self.max_btn.setObjectName("MaxButton")
-        self.max_btn.setProperty("class", "TitleButton")
-        self.max_btn.setFixedSize(30, 24)
-        self.max_btn.setToolTip("Maximize / Restore")
-        self.max_btn.clicked.connect(self._toggle_maximize)
-        layout.addWidget(self.max_btn)
-
-        # Close button
-        self.close_btn = QPushButton("✕", self)
-        self.close_btn.setObjectName("CloseButton")
-        self.close_btn.setProperty("class", "TitleButton")
-        self.close_btn.setFixedSize(30, 24)
-        self.close_btn.setToolTip("Close")
-        self.close_btn.clicked.connect(self._on_close)
-        layout.addWidget(self.close_btn)
+    def _traffic(self, object_name, color, tip, slot):
+        btn = QPushButton("", self)
+        btn.setObjectName(object_name)
+        btn.setProperty("class", "TrafficLight")
+        btn.setFixedSize(12, 12)
+        btn.setToolTip(tip)
+        btn.setStyleSheet(
+            f"QPushButton#{object_name} {{"
+            f"background-color: {color}; border: none; border-radius: 6px;"
+            f"min-width: 12px; max-width: 12px; min-height: 12px; max-height: 12px; padding: 0; }}"
+        )
+        btn.clicked.connect(slot)
+        return btn
 
     def set_title(self, text: str):
-        """Update title label text."""
-        self.title_label.setText(text)
+        self._title = text or "Owl"
+        self.title_label.setText("")
+        self.title_label.setToolTip(self._title)
+        self.owl_btn.setToolTip(self._title)
 
     def _on_opacity_changed(self, value: int):
-        """Update window opacity when opacity slider value changes."""
         win = self.window()
         if win and hasattr(win, "setWindowOpacity"):
             win.setWindowOpacity(value / 100.0)
@@ -93,17 +101,11 @@ class TitleBar(QWidget):
             return
         if hasattr(win, "_toggle_maximize") and callable(win._toggle_maximize):
             win._toggle_maximize()
-            if win.isMaximized():
-                self.max_btn.setText("❐")
-            else:
-                self.max_btn.setText("□")
         elif hasattr(win, "isMaximized"):
             if win.isMaximized():
                 win.showNormal()
-                self.max_btn.setText("□")
             else:
                 win.showMaximized()
-                self.max_btn.setText("❐")
 
     def mousePressEvent(self, event: QMouseEvent):
         if hasattr(self, "opacity_slider") and self.opacity_slider.geometry().contains(event.position().toPoint()):

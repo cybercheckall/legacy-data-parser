@@ -17,11 +17,11 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QUrl, QRect, QEventLoop, QTimer
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from browser import PhantomBrowser, WebTab
-from profile_manager import ProfileManager, Profile
-from settings_view import SettingsView
-from ai_panel import AISidePanel, AIFloatingButton
-from profile_selector import ProfileSelector
+from owl.workspace.main_window import PhantomBrowser, WebTab
+from owl.profiles.profile_manager import ProfileManager, Profile
+from owl.settings.view import SettingsView
+from owl.ai.panel import AISidePanel, AIFloatingButton
+from owl.profiles.profile_selector import ProfileSelector
 
 
 class TestAISidePanelGeometryAndAnimation(unittest.TestCase):
@@ -44,45 +44,44 @@ class TestAISidePanelGeometryAndAnimation(unittest.TestCase):
         self.tmp_dir.cleanup()
 
     def test_ai_panel_geometry_offset_titlebar_non_obstruction(self):
-        """Verify AI side panel y-offset equals title bar height, leaving window controls unobstructed."""
-        title_bar_h = self.browser.title_bar.height()
-        self.assertGreater(title_bar_h, 0, "TitleBar height must be > 0")
+        """Docked panel sits in content row (below shell) and pushes page width — not an overlay."""
+        shell_h = self.browser._shell_height()
+        self.assertGreater(shell_h, 0, "Shell height must be > 0")
 
         panel = self.browser.ai_panel
+        page = self.browser.page_column
+        page_w_before = page.width()
+
         panel.show_panel()
         self.app.processEvents()
 
-        # Wait for animation to finish
         loop = QEventLoop()
         panel._anim.finished.connect(loop.quit)
         if panel._anim.state() == panel._anim.State.Running:
             loop.exec()
+        self.app.processEvents()
 
-        geom = panel.geometry()
-        bw = self.browser.width()
-        bh = self.browser.height()
-        pw = panel.width()
+        self.assertTrue(panel.isVisible())
+        self.assertGreaterEqual(panel.width(), 380)
+        self.assertLessEqual(panel.width(), 420)
+        # Panel is parented under content layer — below shell, not covering handler
+        top_left = panel.mapTo(self.browser, panel.rect().topLeft())
+        self.assertGreaterEqual(top_left.y(), shell_h - 1)
+        # Page column is pushed narrower when panel opens
+        self.assertLess(page.width(), page_w_before + 1)
+        self.assertLess(page.width() + panel.width(), self.browser.width() + 40)
 
-        self.assertEqual(geom.y(), title_bar_h, "Panel top 'y' must strictly start at title_bar height.")
-        self.assertEqual(geom.height(), bh - title_bar_h, "Panel height must equal window height minus title_bar height.")
-        self.assertEqual(geom.x(), bw - pw, "Panel x must equal window width minus panel width.")
-
-        # Test geometry re-calculation on window resize
         self.browser.resize(1300, 850)
         self.browser._reposition_ai_components()
         self.app.processEvents()
-
-        new_title_h = self.browser.title_bar.height()
-        new_geom = panel.geometry()
-        self.assertEqual(new_geom.y(), new_title_h)
-        self.assertEqual(new_geom.height(), 850 - new_title_h)
-        self.assertEqual(new_geom.x(), 1300 - pw)
+        self.assertTrue(panel.is_expanded())
+        self.assertGreaterEqual(panel.width(), 380)
 
     def test_ai_panel_slide_out_animation_and_reversal(self):
-        """Test slide-in, slide-out animation finished callback and mid-flight cancellation."""
+        """Test width push-in / push-out animation and mid-flight cancellation."""
         panel = self.browser.ai_panel
 
-        # 1. Slide-in
+        # 1. Push-in
         panel.show_panel()
         self.assertTrue(panel.is_expanded())
         self.assertTrue(panel.isVisible())
@@ -92,12 +91,11 @@ class TestAISidePanelGeometryAndAnimation(unittest.TestCase):
         if panel._anim.state() == panel._anim.State.Running:
             loop.exec()
 
-        self.assertEqual(panel.geometry().x(), self.browser.width() - panel.width())
+        self.assertGreaterEqual(panel.width(), 380)
 
-        # 2. Slide-out
+        # 2. Push-out
         panel.hide_panel()
         self.assertFalse(panel.is_expanded())
-        # While animating out, super().isVisible() should STILL be True until animation finishes
         self.assertTrue(panel.isVisible(), "Widget must remain visible during slide-out animation.")
 
         loop2 = QEventLoop()
@@ -106,12 +104,12 @@ class TestAISidePanelGeometryAndAnimation(unittest.TestCase):
             loop2.exec()
 
         self.assertFalse(panel.isVisible(), "Widget must hide when slide-out animation finishes.")
-        self.assertEqual(panel.geometry().x(), self.browser.width())
+        self.assertEqual(panel.width(), 0)
 
-        # 3. Rapid mid-flight reversal (show -> immediately hide -> show)
+        # 3. Rapid mid-flight reversal
         panel.show_panel()
         self.assertTrue(panel._anim.state() == panel._anim.State.Running)
-        panel.hide_panel()  # Interrupt mid-flight
+        panel.hide_panel()
         self.assertFalse(panel.is_expanded())
 
         loop3 = QEventLoop()

@@ -3,7 +3,7 @@ tests/test_challenger_m2_2.py - Empirical Challenger 2 Test Suite for M2 Iterati
 
 Covers:
 1. Corner widget placement on TabWidget (+ button top-right corner widget).
-2. Reload-only toolbar compliance (no back/forward in layout, reload btn present, centered url bar).
+2. Brave-inspired toolbar (back/forward/reload visible, pill url bar, shield chip).
 3. Last-tab close behavior (last tab fallback to homepage, tab title set to Home, count preserved).
 4. Dark glass QSS theme loading (style application on PhantomBrowser and sub-components).
 5. Window drag and double-click toggle maximize mechanics in TitleBar.
@@ -14,11 +14,11 @@ from PyQt6.QtCore import Qt, QPointF
 from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QApplication
 
-from browser import PhantomBrowser
-from title_bar import TitleBar
-from nav_bar import NavBar
-from tab_bar import TabWidget
-from styles import DARK_GLASS_STYLE
+from owl.workspace.main_window import PhantomBrowser
+from owl.shell.title_bar import TitleBar
+from owl.shell.nav_bar import NavBar
+from owl.shell.tab_bar import TabWidget
+from owl.design.stylesheet import DARK_GLASS_STYLE
 
 
 class TestChallengerM2It2Suite:
@@ -44,32 +44,30 @@ class TestChallengerM2It2Suite:
         tabs.deleteLater()
         QApplication.processEvents()
 
-    def test_reload_only_toolbar_compliance(self, qtbot):
-        """Verify NavBar complies with reload-only requirement R1 (no back/fwd in layout, reload present)."""
+    def test_brave_toolbar_compliance(self, qtbot):
+        """Verify NavBar has navigation shell: back/fwd/reload, omnibox, shield, settings, profile."""
         nav = NavBar()
         qtbot.addWidget(nav)
         nav.show()
 
-        # Confirm reload button, url bar, settings button, profile button in layout
-        assert nav.reload_btn.text() == "⟳"
+        assert not nav.reload_btn.icon().isNull()
         assert nav.reload_btn.isVisible()
+        assert nav.back_btn.isVisible()
+        assert nav.fwd_btn.isVisible()
         assert nav.url_bar.objectName() == "NavUrlBar"
-        assert nav.settings_btn.text() == "⚙"
-        assert nav.profile_btn.text() == "👤"
+        assert nav.shield_btn.isVisible()
+        assert nav.settings_btn.objectName() == "SettingsBtn"
+        assert nav.profile_btn.objectName() == "ProfileBtn"
 
-        # Back & Fwd buttons exist for API compatibility but MUST be hidden and NOT in layout
-        assert nav.back_btn.isHidden()
-        assert nav.fwd_btn.isHidden()
-
-        # Check layout items: visible widgets count in layout
         layout = nav.layout()
         layout_widgets = [layout.itemAt(i).widget() for i in range(layout.count()) if layout.itemAt(i).widget()]
+        assert nav.back_btn in layout_widgets
+        assert nav.fwd_btn in layout_widgets
         assert nav.reload_btn in layout_widgets
         assert nav.url_bar in layout_widgets
+        assert nav.shield_btn in layout_widgets
         assert nav.settings_btn in layout_widgets
         assert nav.profile_btn in layout_widgets
-        assert nav.back_btn not in layout_widgets
-        assert nav.fwd_btn not in layout_widgets
 
         nav.deleteLater()
         QApplication.processEvents()
@@ -113,7 +111,7 @@ class TestChallengerM2It2Suite:
 
         style = browser.styleSheet()
         assert style == DARK_GLASS_STYLE
-        assert "#0a0a1a" in style  # Dark bg color
+        assert "#ffffff" in style  # light shell
         assert "#TitleBar" in style
         assert "#NavBar" in style
         assert "#NavUrlBar" in style
@@ -121,6 +119,7 @@ class TestChallengerM2It2Suite:
         assert "QTabWidget::pane" in style
         assert "QTabBar::tab" in style
         assert "#ProfileSelector" in style
+        assert "#1a73e8" in style  # Owl blue accent
 
         browser.close()
         browser.deleteLater()

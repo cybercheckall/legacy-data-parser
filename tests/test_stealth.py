@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent
 
-from display_affinity import apply_display_affinity, WDA_EXCLUDEFROMCAPTURE
+from owl.stealth.display_affinity import apply_display_affinity, WDA_EXCLUDEFROMCAPTURE
 from hotkey import GlobalHotkey, HotkeyManager
 from stealth_browser.main_window import MainWindow
 

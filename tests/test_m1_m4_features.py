@@ -14,10 +14,10 @@ from PyQt6.QtWidgets import QApplication, QSlider
 from PyQt6.QtCore import Qt, QPointF
 from PyQt6.QtGui import QMouseEvent
 
-from profile_manager import ProfileManager
-from title_bar import TitleBar
-from tab_bar import TabWidget
-from browser import OwlBrowser, HOME_URL
+from owl.profiles.profile_manager import ProfileManager
+from owl.shell.title_bar import TitleBar
+from owl.shell.tab_bar import TabWidget
+from owl.workspace.main_window import OwlBrowser, HOME_URL
 
 
 class TestM1ToM4Features(unittest.TestCase):
@@ -63,7 +63,7 @@ class TestM1ToM4Features(unittest.TestCase):
         self.assertFalse(press_event.isAccepted(), "Mouse press over opacity slider must be ignored to prevent window drag.")
         tb.deleteLater()
 
-    def test_m3_chrome_style_adjacent_tab_button(self):
+    def test_m3_owl_style_adjacent_tab_button(self):
         """M3: '+' new tab button is parented to self/tabBar and positioned adjacent to active tab strip."""
         tab_widget = TabWidget()
         tab_widget.resize(800, 600)

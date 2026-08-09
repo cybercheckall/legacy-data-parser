@@ -1,0 +1,13 @@
+{
+  "active_profile_id": "guest",
+  "profiles": [
+    {
+      "id": "guest",
+      "name": "Guest mode",
+      "avatar": "👤",
+      "homepage": "https://www.google.com",
+      "search_engine": "Google",
+      "theme_color": "#533483"
+    }
+  ]
+}

@@ -16,8 +16,8 @@ import unittest
 import tempfile
 from PyQt6.QtWidgets import QApplication
 
-from settings_view import SettingsView
-from profile_manager import ProfileManager
+from owl.settings.view import SettingsView
+from owl.profiles.profile_manager import ProfileManager
 
 
 class TestSettingsPageAndSearchEngine(unittest.TestCase):

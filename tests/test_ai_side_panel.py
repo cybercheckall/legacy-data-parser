@@ -2,8 +2,8 @@
 test_ai_side_panel.py - Tier 1 & Tier 2 Opaque-Box E2E Tests for AI Side Panel (ChatGPT Integration).
 
 Covers:
-- AIFloatingButton (52x52px circular button with sparkle icon ✦ and pulse animation).
-- AISidePanel (380-420px width, header "ChatGPT", close X button, embedded ChatGPT webview).
+- AIFloatingButton (Ask Owl bottom pill with sparkle ✦ and pulse animation).
+- AISidePanel (380-420px width, header "Ask Owl", close X button, embedded ChatGPT webview).
 - Slide-in/slide-out toggle animations.
 - Boundary conditions: rapid animation toggles, window resize button repositioning, initial hidden state, z-order, idempotent show/hide calls.
 """
@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from ai_panel import AIFloatingButton, AISidePanel
+from owl.ai.panel import AIFloatingButton, AISidePanel
 
 
 class TestAISidePanel(unittest.TestCase):
@@ -35,10 +35,12 @@ class TestAISidePanel(unittest.TestCase):
     # --- Tier 1: Happy-Path Test Cases (≥5) ---
 
     def test_tier1_floating_button_creation_and_position(self):
-        """Tier 1: AIFloatingButton is created with circular dimensions (52x52px) and sparkle icon."""
-        self.assertEqual(self.btn.width(), 52, "Floating button width must be 52px.")
-        self.assertEqual(self.btn.height(), 52, "Floating button height must be 52px.")
+        """Tier 1: AIFloatingButton is Ask Owl pill (Gemini-style) with sparkle icon."""
+        from owl.ai.panel import ASK_OWL_WIDTH, ASK_OWL_HEIGHT
+        self.assertEqual(self.btn.width(), ASK_OWL_WIDTH, "Ask Owl pill width mismatch.")
+        self.assertEqual(self.btn.height(), ASK_OWL_HEIGHT, "Ask Owl pill height mismatch.")
         self.assertIn("✦", self.btn.text(), "Floating button text must feature sparkle icon ✦.")
+        self.assertIn("Ask Owl", self.btn.text())
 
     def test_tier1_panel_slide_in_toggle(self):
         """Tier 1: Calling toggle_panel() slides in / opens the AI side panel."""
@@ -49,10 +51,12 @@ class TestAISidePanel(unittest.TestCase):
         self.assertFalse(self.panel.is_expanded(), "toggle_panel() must hide visible panel.")
 
     def test_tier1_panel_dimensions_and_header(self):
-        """Tier 1: AISidePanel width is in range 380-420px and features 'ChatGPT' header and close button."""
-        self.assertGreaterEqual(self.panel.width(), 380, "Side panel width must be at least 380px.")
-        self.assertLessEqual(self.panel.width(), 420, "Side panel width must not exceed 420px.")
-        self.assertEqual(self.panel.header_label.text(), "ChatGPT", "Panel header label must read 'ChatGPT'.")
+        """Tier 1: AISidePanel docks at 380-420px when open; header reads Ask Owl."""
+        self.assertGreaterEqual(self.panel._panel_width, 380, "Docked panel width must be at least 380px.")
+        self.assertLessEqual(self.panel._panel_width, 420, "Docked panel width must not exceed 420px.")
+        self.panel.show_panel()
+        self.app.processEvents()
+        self.assertEqual(self.panel.header_label.text(), "Ask Owl", "Panel header label must read 'Ask Owl'.")
         self.assertIsNotNone(self.panel.close_btn, "Panel must feature close button.")
 
     def test_tier1_panel_chatgpt_webview_url(self):

@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QColor, QFont
 
-from profile_manager import Profile
+from owl.profiles.profile_manager import Profile
 
 
 class ProfileSelector(QWidget):
@@ -36,15 +36,17 @@ class ProfileSelector(QWidget):
 
         # Header Title
         title = QLabel("🦉 Owl", self)
-        title_font = QFont("Segoe UI", 24, QFont.Weight.Bold)
+        title_font = QFont()
+        title_font.setPointSize(24)
+        title_font.setWeight(QFont.Weight.Bold)
         title.setFont(title_font)
-        title.setStyleSheet("color: #f8fafc; background: transparent; margin-bottom: 4px;")
+        title.setStyleSheet("color: #202124; background: transparent; margin-bottom: 4px;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title)
 
         # Subtitle
         subtitle = QLabel("Select a profile to launch your private ephemeral workspace", self)
-        subtitle.setStyleSheet("color: #94a3b8; font-size: 14px; background: transparent; margin-bottom: 30px;")
+        subtitle.setStyleSheet("color: #5f6368; font-size: 14px; background: transparent; margin-bottom: 30px;")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(subtitle)
 
@@ -73,12 +75,13 @@ class ProfileSelector(QWidget):
         card_btn.setProperty("class", "ProfileCard")
         card_btn.setFixedSize(200, 160)
         card_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        accent = profile.theme_color or "#1a73e8"
         card_btn.setStyleSheet(
             f"""
             QPushButton {{
-                background-color: rgba(30, 41, 59, 0.80);
-                color: #f8fafc;
-                border: 2px solid rgba(255, 255, 255, 0.10);
+                background-color: #ffffff;
+                color: #202124;
+                border: 2px solid #dadce0;
                 border-radius: 16px;
                 padding: 16px;
                 font-size: 15px;
@@ -86,12 +89,13 @@ class ProfileSelector(QWidget):
                 text-align: center;
             }}
             QPushButton:hover {{
-                background-color: rgba(51, 65, 85, 0.95);
-                border: 2px solid {profile.theme_color or '#6366f1'};
-                color: #ffffff;
+                background-color: #f1f3f4;
+                border: 2px solid {accent};
+                color: #202124;
             }}
             QPushButton:pressed {{
-                background-color: #6366f1;
+                background-color: #1a73e8;
+                color: #ffffff;
             }}
             """
         )
