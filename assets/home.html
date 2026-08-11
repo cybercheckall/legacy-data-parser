@@ -21,10 +21,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(74, 144, 226, 0.15), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(155, 89, 182, 0.15), transparent 25%);
+            background: linear-gradient(135deg, #000000 0%, #1a1a24 100%);
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: var(--text-color);
             overflow: hidden;
@@ -109,7 +106,7 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search the web or enter URL..." autofocus>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search Google or type a URL..." autofocus>
         </div>
     </div>
 
@@ -124,14 +121,18 @@
                 // Basic URL detection
                 const isUrl = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(query);
                 
+                let targetUrl = '';
                 if (isUrl) {
                     if (!query.startsWith('http://') && !query.startsWith('https://')) {
                         query = 'https://' + query;
                     }
-                    window.location.href = query;
+                    targetUrl = query;
                 } else {
-                    window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+                    targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
                 }
+                
+                window.open(targetUrl, '_blank');
+                searchInput.value = '';
             }
         });
     </script>
