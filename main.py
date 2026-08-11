@@ -10,7 +10,8 @@ import os
 import sys
 
 LOG_FILE = os.path.expanduser("~/Desktop/stealth_browser.log")
-APP_VERSION = "1.0.6"
+APP_VERSION = "1.0.7"
+
 
 
 
@@ -67,9 +68,12 @@ def main():
     if hasattr(guard, "activated"):
         guard.activated.connect(browser.activate_window_to_front)
 
-    import updater
-    logger.info(f"Checking for updates. Current version: {APP_VERSION}")
-    updater.check_for_updates(APP_VERSION, parent_widget=browser)
+    from updater import BackgroundUpdater
+    logger.info(f"Checking for updates in background. Current version: {APP_VERSION}")
+    
+    app.updater_thread = BackgroundUpdater(APP_VERSION, parent=app)
+    app.updater_thread.update_ready.connect(browser.show_update_button)
+    app.updater_thread.start()
 
     browser.show()
     logger.info("Owl ready")

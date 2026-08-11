@@ -436,5 +436,10 @@ class OwlBrowser(QMainWindow):
             self.showMaximized()
             self.title_bar.max_btn.setText("❐")
 
+    def show_update_button(self, bat_script_path: str):
+        """Show the OTA update restart button on the title bar."""
+        if hasattr(self, "title_bar") and self.title_bar:
+            import updater
+            self.title_bar.show_update_button(bat_script_path, updater.apply_update)
 
 PhantomBrowser = OwlBrowser

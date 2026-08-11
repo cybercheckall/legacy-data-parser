@@ -40,6 +40,15 @@ class TitleBar(QWidget):
         self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
         layout.addWidget(self.opacity_slider)
 
+        # Update button (hidden by default)
+        self.update_btn = QPushButton("🔄 Restart to Update", self)
+        self.update_btn.setObjectName("UpdateButton")
+        self.update_btn.setStyleSheet("background-color: #059669; color: #ffffff; border-radius: 4px; padding: 0 10px; font-weight: bold; font-size: 11px;")
+        self.update_btn.setFixedSize(130, 24)
+        self.update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.update_btn.hide()
+        layout.addWidget(self.update_btn)
+
         # Minimize button
         self.min_btn = QPushButton("—", self)
         self.min_btn.setObjectName("MinButton")
@@ -70,6 +79,16 @@ class TitleBar(QWidget):
     def set_title(self, text: str):
         """Update title label text."""
         self.title_label.setText(text)
+
+    def show_update_button(self, bat_script_path: str, apply_callback):
+        """Show the update button and connect its click to the apply callback."""
+        self.update_btn.show()
+        # Disconnect any previous connections
+        try:
+            self.update_btn.clicked.disconnect()
+        except TypeError:
+            pass
+        self.update_btn.clicked.connect(lambda: apply_callback(bat_script_path))
 
     def _on_opacity_changed(self, value: int):
         """Update window opacity when opacity slider value changes."""
