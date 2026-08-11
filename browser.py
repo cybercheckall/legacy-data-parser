@@ -41,7 +41,7 @@ BOOKMARKS = [
     ("LeetCode", "https://leetcode.com"),
 ]
 
-HOME_URL = "https://www.google.com"
+HOME_URL = "file:///" + os.path.abspath(os.path.join(os.path.dirname(__file__), "assets", "home.html")).replace("\\", "/")
 
 
 class WebTab(QWebEngineView):

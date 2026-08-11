@@ -9,6 +9,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QUrl
 from PyQt6.QtWidgets import QTabWidget, QPushButton, QWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings
+from profile_manager import HOME_URL
 
 
 class TabWidget(QTabWidget):
@@ -16,7 +17,7 @@ class TabWidget(QTabWidget):
 
     new_tab_requested = pyqtSignal()
 
-    def __init__(self, parent=None, homepage_url: str = "https://www.google.com"):
+    def __init__(self, parent=None, homepage_url: str = HOME_URL):
         super().__init__(parent)
         self.setObjectName("TabWidget")
         self._homepage_url = homepage_url

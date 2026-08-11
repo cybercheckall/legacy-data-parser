@@ -10,7 +10,8 @@ import os
 import sys
 
 LOG_FILE = os.path.expanduser("~/Desktop/stealth_browser.log")
-APP_VERSION = "0.9.0"
+APP_VERSION = "1.0.1"
+
 
 
 def setup_logging():

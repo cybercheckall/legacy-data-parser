@@ -18,6 +18,8 @@ import uuid
 from dataclasses import asdict, dataclass
 from typing import List, Optional
 
+HOME_URL = "file:///" + os.path.abspath(os.path.join(os.path.dirname(__file__), "assets", "home.html")).replace("\\", "/")
+
 from PyQt6.QtCore import QObject
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
@@ -42,7 +44,7 @@ class Profile:
     id: str
     name: str
     avatar: str = "ghost"
-    homepage: str = "https://www.google.com"
+    homepage: str = HOME_URL
     search_engine: str = "Google"
     theme_color: str = "#533483"
 
@@ -58,7 +60,7 @@ class Profile:
             id=data.get("id", str(uuid.uuid4())),
             name=data.get("name", "Guest mode"),
             avatar=data.get("avatar", "👤"),
-            homepage=data.get("homepage", "https://www.google.com"),
+            homepage=data.get("homepage", HOME_URL),
             search_engine=sanitize_search_engine(data.get("search_engine", "Google")),
             theme_color=data.get("theme_color", "#533483"),
         )
@@ -93,7 +95,7 @@ class ProfileManager:
             id="guest",
             name="Guest mode",
             avatar="👤",
-            homepage="https://www.google.com",
+            homepage=HOME_URL,
             search_engine="Google",
             theme_color="#533483",
         )
@@ -121,6 +123,12 @@ class ProfileManager:
                 return self._create_defaults()
 
             self.profiles = [Profile.from_dict(p) for p in raw_profiles]
+            
+            # Migrate old default homepages to the new local home tab
+            for p in self.profiles:
+                if p.homepage == "https://www.google.com":
+                    p.homepage = HOME_URL
+
             self.active_profile_id = data.get("active_profile_id")
 
             # Validate active profile ID
@@ -204,7 +212,7 @@ class ProfileManager:
         self,
         name: str,
         avatar: str = "ghost",
-        homepage: str = "https://www.google.com",
+        homepage: str = HOME_URL,
         search_engine: str = "Google",
         theme_color: str = "#533483",
     ) -> Optional[Profile]:

@@ -12,6 +12,7 @@ datas = [
     ('owl_icon.jpg', '.'),
     ('owl_icon.ico', '.'),
     ('owl_icon.png', '.'),
+    ('assets/home.html', 'assets'),
 ]
 web_engine_resources = os.path.join(qt6_path, 'resources')
 if os.path.isdir(web_engine_resources):
