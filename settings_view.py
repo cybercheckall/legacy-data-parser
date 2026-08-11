@@ -147,9 +147,9 @@ class SettingsView(QWidget):
         card_layout.addWidget(card_title)
 
         active_prof = self.profile_manager.get_active_profile()
-        self.homepage_input = QLineEdit(active_prof.homepage if active_prof else HOME_URL, card)
+        self.homepage_input = QLineEdit(active_prof.homepage if active_prof else "owl://home", card)
         self.homepage_input.setObjectName("HomepageInput")
-        self.homepage_input.setPlaceholderText("Enter homepage URL (e.g. " + HOME_URL + ")")
+        self.homepage_input.setPlaceholderText("Enter homepage URL (e.g. owl://home)")
         self.homepage_input.returnPressed.connect(self._on_save_homepage)
         card_layout.addWidget(self.homepage_input)
 
@@ -251,7 +251,7 @@ class SettingsView(QWidget):
         self.new_prof_avatar = QLineEdit("💼", new_card)
         new_form.addRow("Avatar:", self.new_prof_avatar)
 
-        self.new_prof_hp = QLineEdit(HOME_URL, new_card)
+        self.new_prof_hp = QLineEdit("owl://home", new_card)
         new_form.addRow("Homepage:", self.new_prof_hp)
 
         self.new_prof_engine = QComboBox(new_card)
@@ -354,7 +354,7 @@ class SettingsView(QWidget):
     def _on_create_profile_clicked(self):
         name = self.new_prof_name.text().strip() or "New Profile"
         avatar = self.new_prof_avatar.text().strip() or "👤"
-        hp = self.new_prof_hp.text().strip() or HOME_URL
+        hp = self.new_prof_hp.text().strip() or "owl://home"
         engine = self.new_prof_engine.currentText()
 
         prof = self.profile_manager.create_profile(name, avatar=avatar, homepage=hp, search_engine=engine)
@@ -526,7 +526,7 @@ class SettingsView(QWidget):
             if not cleaned.lower().startswith(schemes):
                 cleaned = "https://" + cleaned
         else:
-            cleaned = HOME_URL
+            cleaned = "owl://home"
 
         if hasattr(self, "homepage_input"):
             self.homepage_input.blockSignals(True)

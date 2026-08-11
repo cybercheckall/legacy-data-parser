@@ -124,10 +124,10 @@ class ProfileManager:
 
             self.profiles = [Profile.from_dict(p) for p in raw_profiles]
             
-            # Migrate old default homepages to the new local home tab
+            # Migrate old default homepages (Google or ephemeral PyInstaller paths) to owl://home
             for p in self.profiles:
-                if p.homepage == "https://www.google.com":
-                    p.homepage = HOME_URL
+                if p.homepage == "https://www.google.com" or "_MEI" in p.homepage:
+                    p.homepage = "owl://home"
 
             self.active_profile_id = data.get("active_profile_id")
 
@@ -212,7 +212,7 @@ class ProfileManager:
         self,
         name: str,
         avatar: str = "ghost",
-        homepage: str = HOME_URL,
+        homepage: str = "owl://home",
         search_engine: str = "Google",
         theme_color: str = "#533483",
     ) -> Optional[Profile]:

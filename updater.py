@@ -85,8 +85,10 @@ def _download_and_apply_update(download_url, parent_widget):
         
         bat_contents = f"""@echo off
 echo Updating Owl Browser... Please wait.
-timeout /t 2 /nobreak > NUL
-copy /y "{download_path}" "{current_exe}"
+:loop
+timeout /t 1 /nobreak > NUL
+copy /y "{download_path}" "{current_exe}" > NUL
+if %ERRORLEVEL% neq 0 goto loop
 del "{download_path}"
 start "" "{current_exe}"
 del "%~f0"

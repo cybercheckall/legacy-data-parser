@@ -17,7 +17,7 @@ class TabWidget(QTabWidget):
 
     new_tab_requested = pyqtSignal()
 
-    def __init__(self, parent=None, homepage_url: str = HOME_URL):
+    def __init__(self, parent=None, homepage_url: str = "owl://home"):
         super().__init__(parent)
         self.setObjectName("TabWidget")
         self._homepage_url = homepage_url
