@@ -473,7 +473,8 @@ class SettingsView(QWidget):
         card.setProperty("class", "SettingsCard")
         card_layout = QVBoxLayout(card)
 
-        ver = QLabel("Owl v2.0.0 (Stealth Build)", card)
+        import main
+        ver = QLabel(f"Owl v{main.APP_VERSION} (Stealth Build)", card)
         ver.setStyleSheet("font-weight: bold; font-size: 14px; color: #f8fafc;")
         card_layout.addWidget(ver)
 
