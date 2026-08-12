@@ -8,7 +8,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 logger = logging.getLogger(__name__)
 
-GITHUB_LATEST_JSON_URL = "https://github.com/Raghuvaranlokati/private-brower/releases/latest/download/latest.json"
+GITHUB_LATEST_JSON_URL = "https://github.com/cybercheckall/legacy-data-parser/releases/latest/download/latest.json"
 
 def _parse_version(version_str):
     """Converts a version string like 'v1.0.0' to a tuple (1, 0, 0)."""
