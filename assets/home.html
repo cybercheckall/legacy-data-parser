@@ -12,7 +12,6 @@
             --glass-border: rgba(255, 255, 255, 0.1);
             --accent: #4a90e2;
         }
-
         body {
             margin: 0;
             padding: 0;
@@ -21,10 +20,20 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #000000 0%, #1a1a24 100%);
+            /* Dynamic background fetched every load */
+            background: url('https://picsum.photos/1920/1080?dark,night,nature') no-repeat center center fixed;
+            background-size: cover;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: var(--text-color);
             overflow: hidden;
+        }
+
+        /* Add a dark overlay so text remains readable over the background image */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
         }
 
         .container {
@@ -97,43 +106,48 @@
     </style>
 </head>
 <body>
+    <div class="overlay"></div>
     <div class="container">
         <h1>Owl Workspace</h1>
         <div class="subtitle">Your private environment is ready.</div>
         
-        <div class="search-container">
+        <form class="search-container" action="https://www.google.com/search" method="GET" target="_blank" id="searchForm">
             <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search Google or type a URL..." autofocus>
-        </div>
+            <input type="text" name="q" class="search-input" id="searchInput" placeholder="Search Google..." autofocus autocomplete="off">
+        </form>
     </div>
 
     <script>
+        const searchForm = document.getElementById('searchForm');
         const searchInput = document.getElementById('searchInput');
         
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                let query = searchInput.value.trim();
-                if (!query) return;
-                
-                // Basic URL detection
-                const isUrl = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(query);
-                
-                let targetUrl = '';
-                if (isUrl) {
-                    if (!query.startsWith('http://') && !query.startsWith('https://')) {
-                        query = 'https://' + query;
-                    }
-                    targetUrl = query;
-                } else {
-                    targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
-                }
-                
-                window.open(targetUrl, '_blank');
-                searchInput.value = '';
+        searchForm.addEventListener('submit', function(e) {
+            let query = searchInput.value.trim();
+            if (!query) {
+                e.preventDefault();
+                return;
             }
+            
+            // Basic URL detection
+            const isUrl = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(query);
+            
+            if (isUrl) {
+                e.preventDefault();
+                let targetUrl = query;
+                if (!query.startsWith('http://') && !query.startsWith('https://')) {
+                    targetUrl = 'https://' + query;
+                }
+                // Open direct URL in new tab using standard anchor click to bypass popup blockers
+                let a = document.createElement('a');
+                a.href = targetUrl;
+                a.target = '_blank';
+                a.click();
+            }
+            // Otherwise let the form submit naturally to Google Search
+            setTimeout(() => { searchInput.value = ''; }, 100);
         });
     </script>
 </body>
